@@ -1,3 +1,4 @@
+
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,24 @@ const initialDepartments = [
 export default function DepartmentsPage() {
     const [departments, setDepartments] = useState(initialDepartments);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [newDeptName, setNewDeptName] = useState("");
+    const [newDeptHod, setNewDeptHod] = useState("");
+
+    const handleAddDepartment = () => {
+        if (newDeptName && newDeptHod) {
+            setDepartments([
+                ...departments,
+                {
+                    id: departments.length + 1,
+                    name: newDeptName,
+                    hod: newDeptHod
+                }
+            ]);
+            setIsDialogOpen(false);
+            setNewDeptName("");
+            setNewDeptHod("");
+        }
+    }
 
     return (
         <div className="space-y-6">
@@ -62,15 +81,15 @@ export default function DepartmentsPage() {
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="name" className="text-right">Name</Label>
-                                <Input id="name" placeholder="e.g., Computer Science" className="col-span-3" />
+                                <Input id="name" placeholder="e.g., Computer Science" className="col-span-3" value={newDeptName} onChange={(e) => setNewDeptName(e.target.value)} />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="hod" className="text-right">HOD</Label>
-                                <Input id="hod" placeholder="e.g., Dr. John Doe" className="col-span-3" />
+                                <Input id="hod" placeholder="e.g., Dr. John Doe" className="col-span-3" value={newDeptHod} onChange={(e) => setNewDeptHod(e.target.value)} />
                             </div>
                         </div>
                         <DialogFooter>
-                        <Button type="submit" onClick={() => setIsDialogOpen(false)}>Save Department</Button>
+                        <Button type="submit" onClick={handleAddDepartment}>Save Department</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

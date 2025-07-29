@@ -1,3 +1,4 @@
+
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,16 @@ const initialGrades = [
 export default function GradingPolicyPage() {
     const [grades, setGrades] = useState(initialGrades);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [newGrade, setNewGrade] = useState({grade: "", minScore: 0, maxScore: 0 });
+
+    const handleAddGrade = () => {
+        if (newGrade.grade && newGrade.minScore >= 0 && newGrade.maxScore > newGrade.minScore) {
+            setGrades([...grades, newGrade].sort((a,b) => b.minScore - a.minScore));
+            setIsDialogOpen(false);
+            setNewGrade({grade: "", minScore: 0, maxScore: 0 });
+        }
+    }
+
 
     return (
         <div className="space-y-6">
@@ -64,19 +75,19 @@ export default function GradingPolicyPage() {
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="grade" className="text-right">Grade</Label>
-                                <Input id="grade" placeholder="e.g., A+" className="col-span-3" />
+                                <Input id="grade" placeholder="e.g., A+" className="col-span-3" value={newGrade.grade} onChange={e => setNewGrade({...newGrade, grade: e.target.value})} />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="min-score" className="text-right">Min Score</Label>
-                                <Input id="min-score" type="number" placeholder="e.g., 70" className="col-span-3" />
+                                <Input id="min-score" type="number" placeholder="e.g., 70" className="col-span-3" value={newGrade.minScore} onChange={e => setNewGrade({...newGrade, minScore: parseInt(e.target.value)})} />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="max-score" className="text-right">Max Score</Label>
-                                <Input id="max-score" type="number" placeholder="e.g., 100" className="col-span-3" />
+                                <Input id="max-score" type="number" placeholder="e.g., 100" className="col-span-3" value={newGrade.maxScore} onChange={e => setNewGrade({...newGrade, maxScore: parseInt(e.target.value)})} />
                             </div>
                         </div>
                         <DialogFooter>
-                        <Button type="submit" onClick={() => setIsDialogOpen(false)}>Save Grade</Button>
+                        <Button type="submit" onClick={handleAddGrade}>Save Grade</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
