@@ -1,7 +1,7 @@
 "use client";
 import type { ReactNode } from 'react';
 import { LayoutDashboard, History } from 'lucide-react';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { DashboardSidebar } from '@/components/layout/dashboard-sidebar';
 import { Header } from '@/components/layout/header';
 
@@ -13,13 +13,13 @@ const navItems = [
 export default function StudentLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
-        <div className="flex min-h-screen">
+        <Sidebar variant="inset" collapsible="icon">
             <DashboardSidebar navItems={navItems} />
-            <div className="flex-1 flex flex-col">
-                <Header />
-                <main className="flex-1 p-4 md:p-6">{children}</main>
-            </div>
-        </div>
+        </Sidebar>
+        <SidebarInset>
+            <Header />
+            <main className="flex-1 p-4 md:p-6">{children}</main>
+        </SidebarInset>
     </SidebarProvider>
   );
 }

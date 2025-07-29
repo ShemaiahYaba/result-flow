@@ -1,4 +1,3 @@
-import { UserNav } from './user-nav';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { GraduationCap } from 'lucide-react';
@@ -14,7 +13,6 @@ export function Header() {
             </Link>
         </div>
         <div className="flex-1" />
-        <UserNav />
     </header>
   );
 }

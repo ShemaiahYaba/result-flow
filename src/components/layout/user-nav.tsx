@@ -11,14 +11,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
+import { useSidebar } from '../ui/sidebar';
 
 export function UserNav() {
+  const { state } = useSidebar();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-          <Avatar className="h-9 w-9">
-            <AvatarImage src="https://placehold.co/40x40.png" alt="@user" data-ai-hint="user avatar" />
+        <Button variant="ghost" className="relative h-9 w-9 rounded-full data-[state=collapsed]:h-12 data-[state=collapsed]:w-12" data-state={state}>
+          <Avatar className="h-9 w-9 data-[state=collapsed]:h-12 data-[state=collapsed]:w-12" data-state={state}>
+            <AvatarImage src="https://placehold.co/48x48.png" alt="@user" data-ai-hint="user avatar" />
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
         </Button>

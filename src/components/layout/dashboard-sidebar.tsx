@@ -4,13 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { GraduationCap } from 'lucide-react';
 import {
-  Sidebar,
   SidebarHeader,
   SidebarContent,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
+import { UserNav } from './user-nav';
 
 type NavItem = {
   href: string;
@@ -22,7 +23,7 @@ export function DashboardSidebar({ navItems }: { navItems: NavItem[] }) {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="icon" className="hidden border-r bg-card md:flex">
+    <>
       <SidebarHeader>
           <SidebarMenuButton asChild className="h-12 justify-start" size="lg">
               <Link href="/">
@@ -35,7 +36,7 @@ export function DashboardSidebar({ navItems }: { navItems: NavItem[] }) {
         <SidebarMenu>
           {navItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-              <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
+              <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)} tooltip={{content: item.label, side: "right", align: "center"}}>
                 <Link href={item.href}>
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
@@ -45,6 +46,9 @@ export function DashboardSidebar({ navItems }: { navItems: NavItem[] }) {
           ))}
         </SidebarMenu>
       </SidebarContent>
-    </Sidebar>
+      <SidebarFooter>
+        <UserNav />
+      </SidebarFooter>
+    </>
   );
 }
