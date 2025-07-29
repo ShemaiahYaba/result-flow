@@ -23,7 +23,7 @@ function LoginForm({ role, cta, link }: { role: string; cta: string, link: strin
         <Label htmlFor={`${role}-password`}>Password</Label>
         <Input id={`${role}-password`} type="password" />
       </div>
-      <Button asChild className="w-full bg-primary hover:bg-primary/90 !mt-6">
+      <Button asChild className="w-full !mt-6">
         <Link href={link}>{cta}</Link>
       </Button>
     </CardContent>
@@ -32,13 +32,13 @@ function LoginForm({ role, cta, link }: { role: string; cta: string, link: strin
 
 export default function Home() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background p-4">
+    <div className="flex items-center justify-center min-h-screen bg-background p-4 dark">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
             <div className="p-3 mb-4 bg-primary rounded-full shadow-lg">
                 <GraduationCap className="h-8 w-8 text-primary-foreground" />
             </div>
-            <h1 className="text-4xl font-bold font-headline text-primary">ResultFlow</h1>
+            <h1 className="text-4xl font-extrabold font-headline text-primary">ResultFlow</h1>
             <p className="text-muted-foreground mt-2">Streamlined Result Processing for Universities</p>
         </div>
 
