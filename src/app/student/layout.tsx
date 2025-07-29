@@ -1,6 +1,7 @@
+"use client";
 import type { ReactNode } from 'react';
 import { LayoutDashboard, History } from 'lucide-react';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { DashboardSidebar } from '@/components/layout/dashboard-sidebar';
 import { Header } from '@/components/layout/header';
 
