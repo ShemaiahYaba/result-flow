@@ -1,3 +1,92 @@
+import { GraduationCap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from "next/link";
+
+function LoginForm({ role, cta, link }: { role: string; cta: string, link: string }) {
+  return (
+    <CardContent className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor={`${role}-id`}>{role === 'Student' ? 'Matriculation No.' : 'Staff ID'}</Label>
+        <Input id={`${role}-id`} placeholder={role === 'Student' ? 'F/HD/21/1234567' : 'STF-001'} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={`${role}-password`}>Password</Label>
+        <Input id={`${role}-password`} type="password" />
+      </div>
+      <Button asChild className="w-full bg-primary hover:bg-primary/90">
+        <Link href={link}>{cta}</Link>
+      </Button>
+    </CardContent>
+  );
+}
+
 export default function Home() {
-  return <></>;
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-background p-4">
+      <div className="flex flex-col items-center w-full max-w-md">
+        <div className="mb-8 flex flex-col items-center text-center">
+            <div className="p-3 mb-4 bg-primary rounded-full">
+                <GraduationCap className="h-8 w-8 text-primary-foreground" />
+            </div>
+            <h1 className="text-4xl font-bold font-headline text-primary">ResultFlow</h1>
+            <p className="text-muted-foreground mt-2">Streamlined Result Processing for Universities</p>
+        </div>
+
+        <Tabs defaultValue="student" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="student">Student</TabsTrigger>
+            <TabsTrigger value="hod">HOD</TabsTrigger>
+            <TabsTrigger value="admin">Admin</TabsTrigger>
+          </TabsList>
+          <TabsContent value="student">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline">Student Login</CardTitle>
+                <CardDescription>
+                  Access your results, track your CGPA, and more.
+                </CardDescription>
+              </CardHeader>
+              <LoginForm role="Student" cta="Login as Student" link="/student" />
+            </Card>
+          </TabsContent>
+          <TabsContent value="hod">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline">HOD Login</CardTitle>
+                <CardDescription>
+                  Manage departmental results and student registries.
+                </CardDescription>
+              </CardHeader>
+              <LoginForm role="HOD" cta="Login as HOD" link="/hod" />
+            </Card>
+          </TabsContent>
+          <TabsContent value="admin">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline">Admin Login</CardTitle>
+                <CardDescription>
+                  Manage university settings, policies, and approvals.
+                </CardDescription>
+              </CardHeader>
+              <LoginForm role="Admin" cta="Login as Admin" link="/admin" />
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        <p className="mt-8 text-center text-sm text-muted-foreground">
+            © {new Date().getFullYear()} ResultFlow. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
 }
