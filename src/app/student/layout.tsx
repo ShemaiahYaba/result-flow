@@ -1,6 +1,7 @@
+
 "use client";
 import type { ReactNode } from 'react';
-import { LayoutDashboard, History } from 'lucide-react';
+import { LayoutDashboard, History, User } from 'lucide-react';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { DashboardSidebar } from '@/components/layout/dashboard-sidebar';
 import { Header } from '@/components/layout/header';
@@ -8,6 +9,7 @@ import { Header } from '@/components/layout/header';
 const navItems = [
   { href: '/student', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/student/past-results', label: 'Past Results', icon: History },
+  { href: '/student/profile', label: 'My Profile', icon: User },
 ];
 
 export default function StudentLayout({ children }: { children: ReactNode }) {

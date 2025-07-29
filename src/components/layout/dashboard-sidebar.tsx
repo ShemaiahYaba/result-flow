@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -11,7 +12,6 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { UserNav } from './user-nav';
 
 type NavItem = {
   href: string;
@@ -52,7 +52,7 @@ export function DashboardSidebar({ navItems }: { navItems: NavItem[] }) {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <UserNav />
+        {/* UserNav is now in the header */}
       </SidebarFooter>
     </>
   );

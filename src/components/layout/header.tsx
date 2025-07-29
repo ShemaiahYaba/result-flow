@@ -1,6 +1,7 @@
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { GraduationCap } from 'lucide-react';
+import { UserNav } from './user-nav';
 
 export function Header() {
   return (
@@ -18,6 +19,7 @@ export function Header() {
             </Link>
         </div>
         <div className="flex-1" />
+        <UserNav />
     </header>
   );
 }
