@@ -32,7 +32,7 @@ function LoginForm({ role, cta, link }: { role: string; cta: string, link: strin
 
 export default function Home() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background p-4 dark">
+    <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
             <div className="p-3 mb-4 bg-primary rounded-full shadow-lg">
