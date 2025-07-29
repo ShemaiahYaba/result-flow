@@ -24,11 +24,11 @@ import {
 import { Download } from "lucide-react";
 
 const broadsheetData = [
-    { matric: 'F/HD/21/1234567', name: 'John Doe', csc101: 75, csc102: 80, gpa: 4.5 },
-    { matric: 'F/HD/21/1234568', name: 'Jane Smith', csc101: 65, csc102: 72, gpa: 3.8 },
-    { matric: 'F/HD/21/1234569', name: 'Peter Jones', csc101: 85, csc102: 90, gpa: 5.0 },
-    { matric: 'F/HD/21/1234570', name: 'Mary Williams', csc101: 55, csc102: 60, gpa: 3.0 },
-    { matric: 'F/HD/21/1234571', name: 'David Brown', csc101: 48, csc102: 52, gpa: 2.5 },
+    { matric: 'F/HD/21/1234567', name: 'Adewale Adekunle', csc101: 75, csc102: 80, gpa: 4.5 },
+    { matric: 'F/HD/21/1234568', name: 'Ngozi Okafor', csc101: 65, csc102: 72, gpa: 3.8 },
+    { matric: 'F/HD/21/1234569', name: 'Emeka Nwosu', csc101: 85, csc102: 90, gpa: 5.0 },
+    { matric: 'F/HD/21/1234570', name: 'Aisha Bello', csc101: 55, csc102: 60, gpa: 3.0 },
+    { matric: 'F/HD/21/1234571', name: 'Oluwaseun Adeboye', csc101: 48, csc102: 52, gpa: 2.5 },
 ];
 
 export default function BroadsheetPage() {

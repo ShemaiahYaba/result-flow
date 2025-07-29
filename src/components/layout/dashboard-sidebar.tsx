@@ -25,10 +25,15 @@ export function DashboardSidebar({ navItems }: { navItems: NavItem[] }) {
   return (
     <>
       <SidebarHeader>
-          <SidebarMenuButton asChild className="h-12 justify-start" size="lg">
+          <SidebarMenuButton asChild className="h-auto justify-start py-2" size="lg">
               <Link href="/">
-                <GraduationCap className="size-6 shrink-0 text-primary" />
-                <span className="font-headline text-lg font-semibold">ResultFlow</span>
+                <div className="p-2 bg-primary rounded-lg">
+                    <GraduationCap className="size-6 shrink-0 text-primary-foreground" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="font-headline text-lg font-bold">ResultFlow</span>
+                    <span className="text-xs text-muted-foreground">University of Lagos</span>
+                </div>
               </Link>
           </SidebarMenuButton>
       </SidebarHeader>

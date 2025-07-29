@@ -8,8 +8,13 @@ export function Header() {
         <div className="flex items-center gap-2 md:hidden">
             <SidebarTrigger />
             <Link href="/" className="flex items-center gap-2 font-headline text-lg font-semibold">
-                <GraduationCap className="size-6 text-primary" />
-                <span>ResultFlow</span>
+                <div className="p-1.5 bg-primary rounded-md">
+                    <GraduationCap className="size-5 text-primary-foreground" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="font-headline text-base font-bold leading-tight">ResultFlow</span>
+                    <span className="text-xs text-muted-foreground leading-tight">University of Lagos</span>
+                </div>
             </Link>
         </div>
         <div className="flex-1" />

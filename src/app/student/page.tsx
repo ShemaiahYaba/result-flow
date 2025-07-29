@@ -29,7 +29,7 @@ export default function StudentDashboard() {
         <div className="flex items-center justify-between">
             <div>
                 <h1 className="text-3xl font-bold font-headline">Student Dashboard</h1>
-                <p className="text-muted-foreground">Welcome, John Doe (F/HD/21/1234567)</p>
+                <p className="text-muted-foreground">Welcome, Adewale Adekunle (F/HD/21/1234567)</p>
             </div>
              <Button variant="outline">
                 <Download className="mr-2 h-4 w-4" /> Download Transcript

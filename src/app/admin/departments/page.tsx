@@ -30,9 +30,9 @@ import { Label } from "@/components/ui/label"
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 
 const initialDepartments = [
-    { id: 1, name: 'Computer Science', hod: 'Dr. Alan Turing' },
-    { id: 2, name: 'Mechanical Engineering', hod: 'Dr. Ada Lovelace' },
-    { id: 3, name: 'Biochemistry', hod: 'Dr. Marie Curie' },
+    { id: 1, name: 'Computer Science', hod: 'Dr. Chinedu Okoro' },
+    { id: 2, name: 'Mechanical Engineering', hod: 'Dr. Fatima Aliyu' },
+    { id: 3, name: 'Biochemistry', hod: 'Dr. Adebayo Ogunbiyi' },
 ];
 
 export default function DepartmentsPage() {
