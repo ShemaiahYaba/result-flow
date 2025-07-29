@@ -14,7 +14,7 @@ import Link from "next/link";
 
 function LoginForm({ role, cta, link }: { role: string; cta: string, link: string }) {
   return (
-    <CardContent className="space-y-4">
+    <CardContent className="space-y-4 pt-6">
       <div className="space-y-2">
         <Label htmlFor={`${role}-id`}>{role === 'Student' ? 'Matriculation No.' : 'Staff ID'}</Label>
         <Input id={`${role}-id`} placeholder={role === 'Student' ? 'F/HD/21/1234567' : 'STF-001'} />
@@ -23,7 +23,7 @@ function LoginForm({ role, cta, link }: { role: string; cta: string, link: strin
         <Label htmlFor={`${role}-password`}>Password</Label>
         <Input id={`${role}-password`} type="password" />
       </div>
-      <Button asChild className="w-full bg-primary hover:bg-primary/90">
+      <Button asChild className="w-full bg-primary hover:bg-primary/90 !mt-6">
         <Link href={link}>{cta}</Link>
       </Button>
     </CardContent>
@@ -33,9 +33,9 @@ function LoginForm({ role, cta, link }: { role: string; cta: string, link: strin
 export default function Home() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
-      <div className="flex flex-col items-center w-full max-w-md">
+      <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-            <div className="p-3 mb-4 bg-primary rounded-full">
+            <div className="p-3 mb-4 bg-primary rounded-full shadow-lg">
                 <GraduationCap className="h-8 w-8 text-primary-foreground" />
             </div>
             <h1 className="text-4xl font-bold font-headline text-primary">ResultFlow</h1>
@@ -50,8 +50,8 @@ export default function Home() {
           </TabsList>
           <TabsContent value="student">
             <Card>
-              <CardHeader>
-                <CardTitle className="font-headline">Student Login</CardTitle>
+              <CardHeader className="text-center">
+                <CardTitle>Student Login</CardTitle>
                 <CardDescription>
                   Access your results, track your CGPA, and more.
                 </CardDescription>
@@ -61,8 +61,8 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="hod">
             <Card>
-              <CardHeader>
-                <CardTitle className="font-headline">HOD Login</CardTitle>
+              <CardHeader className="text-center">
+                <CardTitle>HOD Login</CardTitle>
                 <CardDescription>
                   Manage departmental results and student registries.
                 </CardDescription>
@@ -72,8 +72,8 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="admin">
             <Card>
-              <CardHeader>
-                <CardTitle className="font-headline">Admin Login</CardTitle>
+              <CardHeader className="text-center">
+                <CardTitle>Admin Login</CardTitle>
                 <CardDescription>
                   Manage university settings, policies, and approvals.
                 </CardDescription>
