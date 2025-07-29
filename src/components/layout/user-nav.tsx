@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import { useSidebar } from '../ui/sidebar';
+import { LogOut, User, Settings } from 'lucide-react';
 
 export function UserNav() {
   const { state } = useSidebar();
@@ -37,15 +38,18 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem>
+            <User className="mr-2 h-4 w-4" />
             Profile
           </DropdownMenuItem>
           <DropdownMenuItem>
+            <Settings className="mr-2 h-4 w-4" />
             Settings
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <Link href="/" legacyBehavior passHref>
             <DropdownMenuItem>
+                <LogOut className="mr-2 h-4 w-4" />
                 Log out
             </DropdownMenuItem>
         </Link>
