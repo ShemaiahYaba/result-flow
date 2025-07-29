@@ -26,22 +26,22 @@ const currentResults = [
 export default function StudentDashboard() {
   return (
     <div className="space-y-6">
-        <div>
-            <h1 className="text-3xl font-bold font-headline">Student Dashboard</h1>
-            <p className="text-muted-foreground">Welcome, John Doe (F/HD/21/1234567)</p>
+        <div className="flex items-center justify-between">
+            <div>
+                <h1 className="text-3xl font-bold font-headline">Student Dashboard</h1>
+                <p className="text-muted-foreground">Welcome, John Doe (F/HD/21/1234567)</p>
+            </div>
+             <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" /> Download Transcript
+            </Button>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle className="font-headline">Current Semester Results</CardTitle>
-                            <CardDescription>2023/2024 - 1st Semester</CardDescription>
-                        </div>
-                        <Button variant="outline">
-                            <Download className="mr-2 h-4 w-4" /> Download PDF
-                        </Button>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Current Semester Results</CardTitle>
+                        <CardDescription>2023/2024 - 1st Semester</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table>
