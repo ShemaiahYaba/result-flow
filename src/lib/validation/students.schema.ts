@@ -4,7 +4,7 @@ import { z } from "zod";
 // STUDENT SCHEMAS
 // ============================================================
 
-// Base student schema
+// Base student schema (from students table)
 export const studentSchema = z.object({
   id: z.string().uuid("Invalid student ID"),
   matric_number: z.string()
@@ -26,6 +26,27 @@ export const studentSchema = z.object({
   is_active: z.boolean().default(true),
   created_at: z.string().datetime("Invalid created_at timestamp").optional(),
   updated_at: z.string().datetime("Invalid updated_at timestamp").optional(),
+}).strict();
+
+// Student with joined data (from Supabase queries)
+export const studentWithJoinsSchema = studentSchema.extend({
+  profiles: z.object({
+    id: z.string().uuid("Invalid profile ID"),
+    full_name: z.string().optional(),
+    email: z.string().email("Invalid email format").optional(),
+    phone_number: z.string().optional(),
+    role: z.enum(["admin", "hod", "student"]).optional(),
+  }).optional(),
+  departments: z.object({
+    id: z.string().uuid("Invalid department ID"),
+    department_name: z.string().optional(),
+    department_code: z.string().optional(),
+  }).optional(),
+  academic_sessions: z.object({
+    id: z.string().uuid("Invalid session ID"),
+    session_name: z.string().optional(),
+    is_active: z.boolean().optional(),
+  }).optional(),
 }).strict();
 
 // Student creation schema (without ID and timestamps)
@@ -141,6 +162,7 @@ export const studentStatisticsSchema = z.object({
 // ============================================================
 
 export type StudentInput = z.infer<typeof studentSchema>;
+export type StudentWithJoins = z.infer<typeof studentWithJoinsSchema>;
 export type CreateStudentInput = z.infer<typeof createStudentSchema>;
 export type UpdateStudentInput = z.infer<typeof updateStudentSchema>;
 export type StudentSearchInput = z.infer<typeof studentSearchSchema>;
