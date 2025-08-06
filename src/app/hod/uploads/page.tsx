@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UploadCloud, File as FileIcon, X } from "lucide-react";
+import { UploadCloud, File as FileIcon, X, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function UploadBox({ id, title, description, acceptedFiles }: { id: string; title: string; description: string; acceptedFiles: string; }) {
@@ -114,6 +114,12 @@ export default function UploadsPage() {
                         />
                     </CardContent>
                 </Card>
+            </div>
+            <div className="flex justify-end pt-4">
+                <Button size="lg">
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Confirm Uploads
+                </Button>
             </div>
         </div>
     );

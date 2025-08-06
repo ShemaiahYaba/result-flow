@@ -26,6 +26,11 @@ function LoginForm({ role, cta, link }: { role: string; cta: string, link: strin
       <Button asChild className="w-full !mt-6">
         <Link href={link}>{cta}</Link>
       </Button>
+      {role === 'Student' && (
+          <div className="text-center text-sm">
+              Don't have an account? <Link href="/register" className="underline text-primary">Sign Up</Link>
+          </div>
+      )}
     </CardContent>
   );
 }
