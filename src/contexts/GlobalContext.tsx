@@ -413,24 +413,31 @@ interface GlobalProviderProps {
 export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(globalReducer, initialState);
 
-  // ============================================================
-  // AUTH HELPERS
-  // ============================================================
-
   const login = async (identifier: string, password: string, role: 'student' | 'hod' | 'admin') => {
     try {
+      console.log('[LOGIN] Attempting login:', { identifier, password: '[REDACTED]', role });
       dispatch({ type: 'SET_LOADING', payload: true });
-      // Use your Edge Function endpoint and add auth header if needed
+      const requestBody = { identifier, password, role };
+      console.log('[LOGIN] Request body:', requestBody);
       const response = await fetch('https://mycaofkqpuxfsmmxwmow.supabase.co/functions/v1/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ identifier, password, role }),
+        body: JSON.stringify(requestBody),
       });
-      const result = await response.json();
+      console.log('[LOGIN] Response status:', response.status);
+      let result;
+      try {
+        result = await response.json();
+        console.log('[LOGIN] Response JSON:', result);
+      } catch (jsonErr) {
+        console.error('[LOGIN] Failed to parse JSON:', jsonErr);
+        throw new Error('Invalid response from server');
+      }
       if (!response.ok) {
-        const errorMsg = result?.error || 'Login failed. Please check your credentials.';
+        console.error('[LOGIN] Login failed:', result.message || result);
+        const errorMsg = result?.error || result?.message || 'Login failed. Please check your credentials.';
         dispatch({
           type: 'ADD_NOTIFICATION',
           payload: {
@@ -445,12 +452,10 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
       }
       // If your Edge Function returns a Supabase session, set it for RLS
       if (result.session) {
-        // If you have access to supabase client here, set the session:
         if (typeof supabase !== 'undefined' && supabase.auth && supabase.auth.setSession) {
           await supabase.auth.setSession(result.session);
         }
       }
-      // Update state with the user/session/profile
       dispatch({ type: 'SET_USER', payload: result.session?.user || result.user });
       dispatch({ type: 'SET_SESSION', payload: result.session });
       dispatch({ type: 'SET_PROFILE', payload: result.user || result.profile });
@@ -464,8 +469,9 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
           timestamp: new Date(),
         },
       });
+      console.log('[LOGIN] Login successful:', result);
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('[LOGIN] Login error:', error);
       dispatch({
         type: 'ADD_NOTIFICATION',
         payload: {
@@ -479,6 +485,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
       throw error;
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
+      console.log('[LOGIN] Login workflow finished');
     }
   };
 
