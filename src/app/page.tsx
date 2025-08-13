@@ -89,6 +89,8 @@ function LoginForm({ role, cta }: { role: string; cta: string }) {
   );
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function Home() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">

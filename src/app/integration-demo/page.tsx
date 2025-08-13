@@ -5,6 +5,8 @@ import { useGlobalContext } from '../../contexts/GlobalContext';
 import { useErrorHandler, ErrorType } from '../../utils/ErrorHandler';
 import ErrorHandlerExample from '../../utils/ErrorHandlerExample';
 
+export const dynamic = 'force-dynamic';
+
 export default function IntegrationDemo() {
   const { 
     state, 

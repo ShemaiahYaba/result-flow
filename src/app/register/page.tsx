@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+export const dynamic = 'force-dynamic';
+
 export default function RegisterPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">

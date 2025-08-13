@@ -40,6 +40,8 @@ const initialResults = [
 
 type Result = typeof initialResults[0];
 
+export const dynamic = 'force-dynamic';
+
 export default function ApproveResultsPage() {
     const [results, setResults] = useState<Result[]>(initialResults);
 
