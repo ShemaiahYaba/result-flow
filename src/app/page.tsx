@@ -12,25 +12,79 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 
-function LoginForm({ role, cta, link }: { role: string; cta: string, link: string }) {
+import { useState } from "react";
+import { useGlobalContext } from "@/contexts/GlobalContext";
+
+type RoleType = 'student' | 'hod' | 'admin';
+
+function LoginForm({ role, cta }: { role: string; cta: string }) {
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { login, state } = useGlobalContext();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      // Map display role to strict union type
+      const roleMap: Record<string, RoleType> = {
+        Student: 'student',
+        HOD: 'hod',
+        Admin: 'admin',
+      };
+      const apiRole = roleMap[role];
+      if (!apiRole) throw new Error('Invalid role selected');
+      await login(identifier, password, apiRole);
+      
+      // On success, redirect based on role
+      if (role === "Student") window.location.href = "/student";
+      else if (role === "HOD") window.location.href = "/hod";
+      else if (role === "Admin") window.location.href = "/admin";
+    } catch (err: any) {
+      setError(err?.message || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <CardContent className="space-y-4 pt-6">
-      <div className="space-y-2">
-        <Label htmlFor={`${role}-id`}>{role === 'Student' ? 'Matriculation No.' : 'Staff ID'}</Label>
-        <Input id={`${role}-id`} placeholder={role === 'Student' ? 'F/HD/21/1234567' : 'STF-001'} />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor={`${role}-password`}>Password</Label>
-        <Input id={`${role}-password`} type="password" />
-      </div>
-      <Button asChild className="w-full !mt-6">
-        <Link href={link}>{cta}</Link>
-      </Button>
-      {role === 'Student' && (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor={`${role}-id`}>
+            {role === "Student" ? "Matriculation No." : "Staff ID"}
+          </Label>
+          <Input
+            id={`${role}-id`}
+            placeholder={role === "Student" ? "F/HD/21/1234567" : "STF-001"}
+            value={identifier}
+            onChange={e => setIdentifier(e.target.value)}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`${role}-password`}>Password</Label>
+          <Input
+            id={`${role}-password`}
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <Button type="submit" className="w-full !mt-6" disabled={loading}>
+          {loading ? "Logging in..." : cta}
+        </Button>
+        {error && <div className="text-red-600 text-sm text-center">{error}</div>}
+        {role === "Student" && (
           <div className="text-center text-sm">
-              Don't have an account? <Link href="/register" className="underline text-primary">Sign Up</Link>
+            Don't have an account? <a href="/register" className="underline text-primary">Sign Up</a>
           </div>
-      )}
+        )}
+      </form>
     </CardContent>
   );
 }
@@ -61,7 +115,7 @@ export default function Home() {
                   Access your results, track your CGPA, and more.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="Student" cta="Login as Student" link="/student" />
+              <LoginForm role="Student" cta="Login as Student" />
             </Card>
           </TabsContent>
           <TabsContent value="hod">
@@ -72,7 +126,7 @@ export default function Home() {
                   Manage departmental results and student registries.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="HOD" cta="Login as HOD" link="/hod" />
+              <LoginForm role="HOD" cta="Login as HOD" />
             </Card>
           </TabsContent>
           <TabsContent value="admin">
@@ -83,7 +137,7 @@ export default function Home() {
                   Manage university settings, policies, and approvals.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="Admin" cta="Login as Admin" link="/admin" />
+              <LoginForm role="Admin" cta="Login as Admin" />
             </Card>
           </TabsContent>
         </Tabs>

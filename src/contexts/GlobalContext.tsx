@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { createClient } from '../utils/supabase/client';
+const supabase = createClient();
 
 // ============================================================
 // TYPES & INTERFACES
@@ -370,7 +372,7 @@ interface GlobalContextType {
   state: GlobalState;
   dispatch: React.Dispatch<GlobalAction>;
   // Auth helpers
-  login: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string, role: 'student' | 'hod' | 'admin') => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
   // Data helpers
@@ -415,71 +417,164 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
   // AUTH HELPERS
   // ============================================================
 
-  const login = async (email: string, password: string) => {
+  const login = async (identifier: string, password: string, role: 'student' | 'hod' | 'admin') => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      // TODO: Implement Supabase auth login
-      // const { data, error } = await supabase.auth.signInWithPassword({
-      //   email,
-      //   password,
-      // });
-      // if (error) throw error;
-      // dispatch({ type: 'SET_USER', payload: data.user });
-      // dispatch({ type: 'SET_SESSION', payload: data.session });
-    } catch (error) {
+      // Use your Edge Function endpoint and add auth header if needed
+      const response = await fetch('https://mycaofkqpuxfsmmxwmow.supabase.co/functions/v1/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ identifier, password, role }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        const errorMsg = result?.error || 'Login failed. Please check your credentials.';
+        dispatch({
+          type: 'ADD_NOTIFICATION',
+          payload: {
+            id: `login-error-${Date.now()}`,
+            type: 'error',
+            title: 'Login Failed',
+            message: errorMsg,
+            timestamp: new Date(),
+          },
+        });
+        throw new Error(errorMsg);
+      }
+      // If your Edge Function returns a Supabase session, set it for RLS
+      if (result.session) {
+        // If you have access to supabase client here, set the session:
+        if (typeof supabase !== 'undefined' && supabase.auth && supabase.auth.setSession) {
+          await supabase.auth.setSession(result.session);
+        }
+      }
+      // Update state with the user/session/profile
+      dispatch({ type: 'SET_USER', payload: result.session?.user || result.user });
+      dispatch({ type: 'SET_SESSION', payload: result.session });
+      dispatch({ type: 'SET_PROFILE', payload: result.user || result.profile });
+      dispatch({
+        type: 'ADD_NOTIFICATION',
+        payload: {
+          id: `login-success-${Date.now()}`,
+          type: 'success',
+          title: 'Login Successful',
+          message: `Welcome back, ${(result.user?.fullname || result.profile?.fullname || 'user')}!`,
+          timestamp: new Date(),
+        },
+      });
+    } catch (error: any) {
       console.error('Login error:', error);
+      dispatch({
+        type: 'ADD_NOTIFICATION',
+        payload: {
+          id: `login-error-${Date.now()}`,
+          type: 'error',
+          title: 'Login Failed',
+          message: error.message,
+          timestamp: new Date(),
+        },
+      });
       throw error;
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
+  // Only one definition for logout, updateProfile, and fetchDepartments is allowed!
+  // Remove any duplicate definitions below this point. This block is the canonical version.
+  // --- LOGOUT ---
   const logout = async () => {
     try {
-      // TODO: Implement Supabase auth logout
-      // await supabase.auth.signOut();
+      await supabase.auth.signOut();
       dispatch({ type: 'LOGOUT' });
       dispatch({ type: 'CLEAR_DATA' });
+      dispatch({
+        type: 'ADD_NOTIFICATION',
+        payload: {
+          id: `logout-success-${Date.now()}`,
+          type: 'info',
+          title: 'Logged Out',
+          message: 'You have been successfully logged out.',
+          timestamp: new Date(),
+        },
+      });
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
     }
   };
 
-  const updateProfile = async (profile: Partial<UserProfile>) => {
+  // --- UPDATE PROFILE ---
+  const updateProfile = async (profileUpdates: Partial<UserProfile>) => {
     try {
-      // TODO: Implement profile update
-      // const { data, error } = await supabase
-      //   .from('profiles')
-      //   .update(profile)
-      //   .eq('id', state.auth.user?.id)
-      //   .single();
-      // if (error) throw error;
-      // dispatch({ type: 'SET_PROFILE', payload: data });
+      if (!state.auth.user?.id) throw new Error('No user logged in');
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('id', state.auth.user.id)
+        .select()
+        .single();
+      if (error) throw error;
+      dispatch({ type: 'SET_PROFILE', payload: data });
+      dispatch({
+        type: 'ADD_NOTIFICATION',
+        payload: {
+          id: `profile-update-${Date.now()}`,
+          type: 'success',
+          title: 'Profile Updated',
+          message: 'Your profile has been updated successfully.',
+          timestamp: new Date(),
+        },
+      });
     } catch (error) {
       console.error('Profile update error:', error);
+      dispatch({
+        type: 'ADD_NOTIFICATION',
+        payload: {
+          id: `profile-error-${Date.now()}`,
+          type: 'error',
+          title: 'Update Failed',
+          message: 'Failed to update profile. Please try again.',
+          timestamp: new Date(),
+        },
+      });
       throw error;
+    }
+  };
+
+  // --- FETCH DEPARTMENTS ---
+  const fetchDepartments = async () => {
+    try {
+      dispatch({ type: 'SET_DATA_LOADING', payload: true });
+      const { data, error } = await supabase
+        .from('departments')
+        .select('*')
+        .order('department_name');
+      if (error) throw error;
+      dispatch({ type: 'SET_DEPARTMENTS', payload: data });
+    } catch (error: any) {
+      console.error('Fetch departments error:', error);
+      dispatch({ type: 'SET_DATA_ERROR', payload: 'Failed to fetch departments' });
+      dispatch({
+        type: 'ADD_NOTIFICATION',
+        payload: {
+          id: `fetch-error-${Date.now()}`,
+          type: 'error',
+          title: 'Data Fetch Error',
+          message: 'Failed to load departments. Please refresh the page.',
+          timestamp: new Date(),
+        },
+      });
+    } finally {
+      dispatch({ type: 'SET_DATA_LOADING', payload: false });
     }
   };
 
   // ============================================================
   // DATA HELPERS
   // ============================================================
-
-  const fetchDepartments = async () => {
-    try {
-      dispatch({ type: 'SET_DATA_LOADING', payload: true });
-      // TODO: Implement Supabase fetch
-      // const { data, error } = await supabase.from('departments').select('*');
-      // if (error) throw error;
-      // dispatch({ type: 'SET_DEPARTMENTS', payload: data });
-    } catch (error) {
-      console.error('Fetch departments error:', error);
-      dispatch({ type: 'SET_DATA_ERROR', payload: 'Failed to fetch departments' });
-    } finally {
-      dispatch({ type: 'SET_DATA_LOADING', payload: false });
-    }
-  };
 
   const fetchAcademicSessions = async () => {
     try {
