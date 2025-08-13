@@ -412,6 +412,12 @@ interface GlobalProviderProps {
 
 export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(globalReducer, initialState);
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+const headers = new Headers();
+headers.set('Content-Type', 'application/json');
+headers.set('apikey', anonKey);
+headers.set('Authorization', `Bearer ${anonKey}`);
 
   const login = async (identifier: string, password: string, role: 'student' | 'hod' | 'admin') => {
     try {
@@ -420,11 +426,9 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
       const requestBody = { identifier, password, role };
       console.log('[LOGIN] Request body:', requestBody);
       // Do NOT send any secret key or Authorization header from client to Edge Function
-      const response = await fetch('/api/login', {
+      const response = await fetch('https://mycaofkqpuxfsmmxwmow.supabase.co/functions/v1/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(requestBody),
       });
       console.log('[LOGIN] Response status:', response.status);
