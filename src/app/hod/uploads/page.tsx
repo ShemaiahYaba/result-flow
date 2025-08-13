@@ -79,6 +79,8 @@ function UploadBox({ id, title, description, acceptedFiles }: { id: string; titl
     )
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function UploadsPage() {
     return (
         <div className="space-y-6">

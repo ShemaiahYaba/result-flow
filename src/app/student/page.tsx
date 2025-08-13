@@ -23,6 +23,8 @@ const currentResults = [
     { code: 'CSC 499', title: 'Project', units: 6, grade: 'A', score: 78 },
 ];
 
+export const dynamic = 'force-dynamic';
+
 export default function StudentDashboard() {
   return (
     <div className="space-y-6">

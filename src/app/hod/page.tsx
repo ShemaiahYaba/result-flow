@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Book, Upload } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 export default function HodDashboard() {
   return (
     <div className="space-y-6">

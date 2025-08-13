@@ -14,6 +14,8 @@ export const metadata: Metadata = {
 
 import { getServerSession, serializeSessionForClient } from "@/utils/auth/ssr-session";
 
+export const dynamic = 'force-dynamic';
+
 export default async function RootLayout({
   children,
 }: {

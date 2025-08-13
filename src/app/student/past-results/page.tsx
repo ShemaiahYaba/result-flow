@@ -31,6 +31,8 @@ const pastResultsData = {
     }
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function PastResultsPage() {
   return (
     <div className="space-y-6">

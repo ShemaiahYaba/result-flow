@@ -38,6 +38,8 @@ const initialHods = [
     { id: 3, name: 'Dr. Adebayo Ogunbiyi', staffId: 'HOD/BCH/001', email: 'adebayo.o@university.edu', department: 'Biochemistry', status: 'Inactive' },
 ];
 
+export const dynamic = 'force-dynamic';
+
 export default function ManageHodsPage() {
     const [hods, setHods] = useState(initialHods);
     const [isDialogOpen, setIsDialogOpen] = useState(false);

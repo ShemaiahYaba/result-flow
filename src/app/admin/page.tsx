@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Book, CheckSquare } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 export default function AdminDashboard() {
   return (
     <div className="space-y-6">

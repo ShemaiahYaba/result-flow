@@ -17,6 +17,8 @@ const initialProfileData = {
     matricNo: "F/HD/21/1234567"
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function ProfilePage() {
     const [profile, setProfile] = useState(initialProfileData);
     const [password, setPassword] = useState({ current: "", new: "" });

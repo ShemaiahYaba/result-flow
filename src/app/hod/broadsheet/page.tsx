@@ -31,6 +31,8 @@ const broadsheetData = [
     { matric: 'F/HD/21/1234571', name: 'Oluwaseun Adeboye', csc101: 48, csc102: 52, gpa: 2.5 },
 ];
 
+export const dynamic = 'force-dynamic';
+
 export default function BroadsheetPage() {
     return (
         <div className="space-y-6">

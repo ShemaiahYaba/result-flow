@@ -36,6 +36,8 @@ const initialDepartments = [
     { id: 3, name: 'Biochemistry', hod: 'Dr. Adebayo Ogunbiyi' },
 ];
 
+export const dynamic = 'force-dynamic';
+
 export default function DepartmentsPage() {
     const [departments, setDepartments] = useState(initialDepartments);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
