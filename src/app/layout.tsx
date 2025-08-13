@@ -12,16 +12,21 @@ export const metadata: Metadata = {
   description: "A comprehensive result management system for universities",
 };
 
-export default function RootLayout({
+import { getServerSession, serializeSessionForClient } from "@/utils/auth/ssr-session";
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const serverSession = await getServerSession();
+  const ssrSessionData = serializeSessionForClient(serverSession);
+
   return (
     <html lang="en">
       <body className={inter.className}>
         <ErrorBoundary>
-          <GlobalProvider>
+          <GlobalProvider ssrSessionData={ssrSessionData}>
             {children}
             <NotificationSystem />
           </GlobalProvider>

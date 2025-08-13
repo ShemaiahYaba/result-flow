@@ -12,34 +12,21 @@ const navItems = [
   { href: '/hod/broadsheet', label: 'Broadsheet', icon: FileText },
 ];
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { RoleGuard } from '@/components/RoleGuard';
 
 export default function HodLayout({ children }: { children: ReactNode }) {
-  const router = useRouter();
-  const { state } = useGlobalContext();
-  const user = state.auth.profile;
-  const loading = state.auth.isLoading;
-
-  useEffect(() => {
-    if (!loading && (!user || user.role !== "hod")) {
-      router.push("/login");
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user || user.role !== "hod") return null;
-
   return (
-    <SidebarProvider>
-      <Sidebar variant="inset" collapsible="icon">
-        <DashboardSidebar navItems={navItems} />
-      </Sidebar>
-      <SidebarInset>
-        <Header />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <RoleGuard allowed={['hod']}>
+      <SidebarProvider>
+        <Sidebar variant="inset" collapsible="icon">
+          <DashboardSidebar navItems={navItems} />
+        </Sidebar>
+        <SidebarInset>
+          <Header />
+          <main className="flex-1 p-4 md:p-6">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </RoleGuard>
   );
 }
 

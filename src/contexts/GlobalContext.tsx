@@ -410,8 +410,22 @@ interface GlobalProviderProps {
   children: ReactNode;
 }
 
-export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
+export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: any }> = ({ children, ssrSessionData }) => {
   const [state, dispatch] = useReducer(globalReducer, initialState);
+  // SSR session hydration
+  React.useEffect(() => {
+    if (ssrSessionData && typeof window !== 'undefined') {
+      // Only hydrate if not already authenticated
+      if (ssrSessionData.user && !state.auth.user) {
+        dispatch({ type: 'SET_USER', payload: ssrSessionData.user });
+        dispatch({ type: 'SET_SESSION', payload: ssrSessionData.session });
+        dispatch({ type: 'SET_PROFILE', payload: ssrSessionData.user }); // or fetch full profile if needed
+        dispatch({ type: 'SET_LOADING', payload: false });
+      } else if (!ssrSessionData.user) {
+        dispatch({ type: 'SET_LOADING', payload: false });
+      }
+    }
+  }, [ssrSessionData, state.auth.user]);
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
   const headers = new Headers();

@@ -12,34 +12,21 @@ const navItems = [
   { href: '/student/profile', label: 'My Profile', icon: User },
 ];
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { RoleGuard } from '@/components/RoleGuard';
 
 export default function StudentLayout({ children }: { children: ReactNode }) {
-  const router = useRouter();
-  const { state } = useGlobalContext();
-  const user = state.auth.profile;
-  const loading = state.auth.isLoading;
-
-  useEffect(() => {
-    if (!loading && (!user || user.role !== "student")) {
-      router.push("/login");
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user || user.role !== "student") return null;
-
   return (
-    <SidebarProvider>
-      <Sidebar variant="inset" collapsible="icon">
-        <DashboardSidebar navItems={navItems} />
-      </Sidebar>
-      <SidebarInset>
-        <Header />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <RoleGuard allowed={['student']}>
+      <SidebarProvider>
+        <Sidebar variant="inset" collapsible="icon">
+          <DashboardSidebar navItems={navItems} />
+        </Sidebar>
+        <SidebarInset>
+          <Header />
+          <main className="flex-1 p-4 md:p-6">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </RoleGuard>
   );
 }
 
