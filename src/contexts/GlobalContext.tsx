@@ -419,7 +419,8 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
       dispatch({ type: 'SET_LOADING', payload: true });
       const requestBody = { identifier, password, role };
       console.log('[LOGIN] Request body:', requestBody);
-      const response = await fetch('https://mycaofkqpuxfsmmxwmow.supabase.co/functions/v1/login', {
+      // Do NOT send any secret key or Authorization header from client to Edge Function
+      const response = await fetch('/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
