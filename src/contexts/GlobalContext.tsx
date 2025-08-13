@@ -423,9 +423,9 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
     try {
       console.log('[LOGIN] Attempting login:', { identifier, password: '[REDACTED]', role });
       dispatch({ type: 'SET_LOADING', payload: true });
+      console.log('[LOGIN] After SET_LOADING dispatch');
       const requestBody = { identifier, password, role };
       console.log('[LOGIN] Request body:', requestBody);
-      // Do NOT send any secret key or Authorization header from client to Edge Function
       const response = await fetch('https://mycaofkqpuxfsmmxwmow.supabase.co/functions/v1/login', {
         method: 'POST',
         headers,
@@ -453,17 +453,21 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
             timestamp: new Date(),
           },
         });
+        console.log('[LOGIN] After ADD_NOTIFICATION dispatch (error)');
         throw new Error(errorMsg);
       }
-      // If your Edge Function returns a Supabase session, set it for RLS
       if (result.session) {
         if (typeof supabase !== 'undefined' && supabase.auth && supabase.auth.setSession) {
           await supabase.auth.setSession(result.session);
         }
       }
+      console.log('[LOGIN] Dispatching SET_USER:', result.session?.user || result.user);
       dispatch({ type: 'SET_USER', payload: result.session?.user || result.user });
+      console.log('[LOGIN] After SET_USER dispatch');
       dispatch({ type: 'SET_SESSION', payload: result.session });
+      console.log('[LOGIN] After SET_SESSION dispatch');
       dispatch({ type: 'SET_PROFILE', payload: result.user || result.profile });
+      console.log('[LOGIN] After SET_PROFILE dispatch');
       dispatch({
         type: 'ADD_NOTIFICATION',
         payload: {
@@ -474,9 +478,10 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
           timestamp: new Date(),
         },
       });
+      console.log('[LOGIN] After ADD_NOTIFICATION dispatch (success)');
       console.log('[LOGIN] Login successful:', result);
     } catch (error: any) {
-      console.error('[LOGIN] Login error:', error);
+      console.error('[LOGIN] Login error (catch):', error);
       dispatch({
         type: 'ADD_NOTIFICATION',
         payload: {
@@ -487,10 +492,12 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
           timestamp: new Date(),
         },
       });
+      console.log('[LOGIN] After ADD_NOTIFICATION dispatch (catch)');
       throw error;
     } finally {
+      console.log('[LOGIN] In finally. Setting loading to false.');
       dispatch({ type: 'SET_LOADING', payload: false });
-      console.log('[LOGIN] Login workflow finished');
+      console.log('[LOGIN] Login workflow finished.');
     }
   };
 
