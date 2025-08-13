@@ -31,6 +31,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
   }, [user, loading, router]);
 
+  console.log("[AdminLayout] loading=", loading, "user=", user);
   if (loading || !user || user.role !== "admin") return null;
 
   return (

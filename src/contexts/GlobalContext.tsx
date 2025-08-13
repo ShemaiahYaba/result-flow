@@ -414,10 +414,10 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(globalReducer, initialState);
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-const headers = new Headers();
-headers.set('Content-Type', 'application/json');
-headers.set('apikey', anonKey);
-headers.set('Authorization', `Bearer ${anonKey}`);
+  const headers = new Headers();
+  headers.set('Content-Type', 'application/json');
+  headers.set('apikey', anonKey);
+  headers.set('Authorization', `Bearer ${anonKey}`);
 
   const login = async (identifier: string, password: string, role: 'student' | 'hod' | 'admin') => {
     try {
