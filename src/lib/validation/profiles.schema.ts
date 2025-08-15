@@ -6,16 +6,15 @@ import { z } from "zod";
 
 // Base profile schema for common fields
 const baseProfileSchema = z.object({
+  id: z.string().uuid("Invalid profile ID"),
+  created_at: z.string().datetime("Invalid created_at timestamp").optional(),
+  updated_at: z.string().datetime("Invalid updated_at timestamp").optional(),
   fullname: z.string().min(2, "Full name must be at least 2 characters").max(255, "Full name must be less than 255 characters"),
   email: z.string().email("Invalid email format").max(255, "Email must be less than 255 characters"),
   phone_number: z.string().max(20, "Phone number must be less than 20 characters").optional(),
   department_id: z.string().uuid("Invalid department ID").optional(),
-  role: z.enum(["admin", "hod", "student"], {
-    errorMap: () => ({ message: "Role must be admin, hod, or student" })
-  }),
-  status: z.enum(["active", "inactive", "suspended"], {
-    errorMap: () => ({ message: "Status must be active, inactive, or suspended" })
-  }).default("active"),
+  role: z.enum(["admin", "hod", "student"]).describe("Role must be admin, hod, or student"),
+  status: z.enum(["active", "inactive", "suspended"]).default("active").describe("Status must be active, inactive, or suspended"),
 });
 
 // Student-specific profile schema
@@ -42,19 +41,35 @@ export const staffProfileSchema = baseProfileSchema.extend({
 export const profileSchema = z.discriminatedUnion("role", [
   studentProfileSchema,
   staffProfileSchema,
-]).strict();
+])
 
 // Profile creation schema (without ID and timestamps)
-export const createProfileSchema = profileSchema.omit({
+const createStudentProfileSchema = studentProfileSchema.omit({
   id: true,
   created_at: true,
   updated_at: true,
 });
+const createStaffProfileSchema = staffProfileSchema.omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+export const createProfileSchema = z.discriminatedUnion("role", [
+  createStudentProfileSchema,
+  createStaffProfileSchema,
+]);
 
 // Profile update schema (all fields optional except ID)
-export const updateProfileSchema = createProfileSchema.partial().extend({
+const updateStudentProfileSchema = createStudentProfileSchema.partial().extend({
   id: z.string().uuid("Invalid profile ID"),
 });
+const updateStaffProfileSchema = createStaffProfileSchema.partial().extend({
+  id: z.string().uuid("Invalid profile ID"),
+});
+export const updateProfileSchema = z.discriminatedUnion("role", [
+  updateStudentProfileSchema,
+  updateStaffProfileSchema,
+]);
 
 // Profile login schema
 export const profileLoginSchema = z.object({
