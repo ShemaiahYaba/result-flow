@@ -21,12 +21,12 @@ export default async function HodLayout({ children }: { children: ReactNode }) {
   // SSR: fetch session and profile
   const { session, user, isAuthenticated } = await getServerSession();
   if (!isAuthenticated || !user) {
-    redirect("/hod-login");
+    redirect("/");
   }
   // Fetch profile for role check
   const profile = await getProfileById(user.id);
   if (!profile || profile.role !== "hod") {
-    redirect("/hod-login");
+    redirect("/");
   }
 
   // Hydrate role and user to client

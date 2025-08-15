@@ -24,12 +24,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // SSR: fetch session and profile
   const { session, user, isAuthenticated } = await getServerSession();
   if (!isAuthenticated || !user) {
-    redirect("/admin-login");
+    redirect("/");
   }
   // Fetch profile for role check
   const profile = await getProfileById(user.id);
   if (!profile || profile.role !== "admin") {
-    redirect("/admin-login");
+    redirect("/");
   }
 
   // Hydrate role and user to client

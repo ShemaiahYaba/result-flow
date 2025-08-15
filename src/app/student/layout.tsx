@@ -21,12 +21,12 @@ export default async function StudentLayout({ children }: { children: ReactNode 
   // SSR: fetch session and profile
   const { session, user, isAuthenticated } = await getServerSession();
   if (!isAuthenticated || !user) {
-    redirect("/student-login");
+    redirect("/");
   }
   // Fetch profile for role check
   const profile = await getProfileById(user.id);
   if (!profile || profile.role !== "student") {
-    redirect("/student-login");
+    redirect("/");
   }
 
   // Hydrate role and user to client
