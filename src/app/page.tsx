@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import router from "next/router";
 
 type RoleType = 'student' | 'hod' | 'admin';
 
@@ -25,6 +24,7 @@ function LoginForm({ role, cta }: { role: string; cta: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { login, state } = useGlobalContext();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
