@@ -20,7 +20,33 @@ const navItems = [
   { href: "/admin/approve-results", label: "Approve Results", icon: CheckCircle },
 ];
 
+import { cookies } from "next/headers";
+
 export default async function AdminLayout({ children }: { children: ReactNode }) {
+  console.log("=== SSR AUTH DEBUG ===");
+  // 1. Check if cookie exists at all
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
+  console.log("All cookies:", allCookies.map((c: { name: string }) => c.name));
+  // 2. Get specific token
+  const token = cookieStore.get("sb-access-token")?.value;
+  console.log("Token exists:", !!token);
+  console.log("Token length:", token?.length);
+  if (token) {
+    // 3. Check token format (should start with "ey")
+    console.log("Token starts with 'ey':", token.startsWith("ey"));
+    console.log("First 20 chars:", token.substring(0, 20));
+    // 4. Try to decode token (don't verify, just read)
+    try {
+      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString('utf8'));
+      console.log("Token exp:", new Date(payload.exp * 1000));
+      console.log("Current time:", new Date());
+      console.log("Is expired:", payload.exp * 1000 < Date.now());
+    } catch (e) {
+      console.log("Token decode failed:", (e as Error).message);
+    }
+  }
+
   // SSR: fetch session and profile
   const { session, user, isAuthenticated } = await getServerSession();
   // DEBUG: Log SSR session
