@@ -17,6 +17,13 @@ export function RoleGuard({ allowed, children }: { allowed: string[]; children: 
     }
   }, [user, loading, allowed, router]);
 
-  if (loading || !user || !allowed.includes(user.role ?? "")) return null;
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-500" />
+      </div>
+    );
+  }
+  if (!user || !allowed.includes(user.role ?? "")) return null;
   return <>{children}</>;
 }

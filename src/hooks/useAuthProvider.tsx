@@ -51,6 +51,28 @@ export interface AuthProviderAPI {
 }
 
 export function useAuthProvider(ssrSessionData?: HydratedSessionData): AuthProviderAPI {
+  // SSR-safe: If running on the server, return minimal context
+  if (typeof window === 'undefined') {
+    return {
+      user: null,
+      session: null,
+      profile: null,
+      isAuthenticated: false,
+      isSessionInitialized: false,
+      isLoading: true,
+      status: 'checking',
+      error: null,
+      roles: [],
+      login: async () => {},
+      signup: async () => {},
+      logout: async () => {},
+      refreshSession: async () => {},
+      fetchProfile: async () => {},
+      hasRole: () => false,
+      hasPermission: () => false,
+      retryAuth: async () => {},
+    };
+  }
   const supabase = createClient();
   const { state, dispatch, addNotification } = useGlobalContext();
   const { handleError } = useErrorHandler();
