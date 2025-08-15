@@ -1,12 +1,15 @@
 // app/admin/layout.tsx
-"use client";
-
+// app/admin/layout.tsx
+// Server Component: SSR role check before React mounts
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { LayoutDashboard, Gavel, FileSliders, CheckCircle, Building, UserCog } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { Header } from "@/components/layout/header";
-import { RoleGuard } from "@/components/RoleGuard";
+import { getServerSession } from "@/utils/auth/ssr-session";
+import { getProfileById } from "@/utils/auth/ssr-profile";
+import { AdminShell } from "@/components/AdminShell";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -17,9 +20,21 @@ const navItems = [
   { href: "/admin/approve-results", label: "Approve Results", icon: CheckCircle },
 ];
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  // SSR: fetch session and profile
+  const { session, user, isAuthenticated } = await getServerSession();
+  if (!isAuthenticated || !user) {
+    redirect("/admin-login");
+  }
+  // Fetch profile for role check
+  const profile = await getProfileById(user.id);
+  if (!profile || profile.role !== "admin") {
+    redirect("/admin-login");
+  }
+
+  // Hydrate role and user to client
   return (
-    <RoleGuard allowed={["admin"]}>
+    <AdminShell initialRole={profile.role} initialUser={user}>
       <SidebarProvider>
         <Sidebar variant="inset" collapsible="icon">
           <DashboardSidebar navItems={navItems} />
@@ -29,6 +44,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <main className="flex-1 p-4 md:p-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>
-    </RoleGuard>
+    </AdminShell>
   );
 }
+

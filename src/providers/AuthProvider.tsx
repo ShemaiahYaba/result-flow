@@ -16,6 +16,8 @@ const AuthContext = createContext<ExtendedAuthContextProps | undefined>(undefine
 interface AuthProviderProps {
   children: ReactNode;
   ssrSessionData?: HydratedSessionData;
+  initialRole?: string;
+  initialUser?: any;
 }
 
 /**
@@ -42,16 +44,21 @@ interface AuthProviderProps {
  * }
  * ```
  */
-export function AuthProvider({ children, ssrSessionData }: AuthProviderProps) {
-  const authAPI = useAuthProvider(ssrSessionData);
+export function AuthProvider({ children, ssrSessionData, initialRole, initialUser }: AuthProviderProps) {
+  // Use SSR-hydrated role/user if provided
+  const authAPI = useAuthProvider(ssrSessionData, initialRole, initialUser);
 
   // Derive guaranteed role and loading
   let role: 'student' | 'admin' | 'hod' | '' = '';
-  if (authAPI?.profile && typeof authAPI.profile.role === 'string') {
+  if (initialRole && ["student", "admin", "hod"].includes(initialRole)) {
+    role = initialRole as 'student' | 'admin' | 'hod';
+  } else if (authAPI?.profile && typeof authAPI.profile.role === 'string') {
     if (["student", "admin", "hod"].includes(authAPI.profile.role)) {
       role = authAPI.profile.role;
     }
   }
+  // Prefer initialUser if provided
+  const user = initialUser || authAPI.user;
   // Use isLoading or status
   const loading = authAPI.isLoading || authAPI.status === 'checking' || authAPI.status === 'loading';
 
@@ -59,6 +66,7 @@ export function AuthProvider({ children, ssrSessionData }: AuthProviderProps) {
     ...authAPI,
     loading,
     role,
+    user,
   };
 
   return (

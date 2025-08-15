@@ -50,7 +50,7 @@ export interface AuthProviderAPI {
   retryAuth: () => Promise<void>; // New helper for retry logic
 }
 
-export function useAuthProvider(ssrSessionData?: HydratedSessionData): AuthProviderAPI {
+export function useAuthProvider(ssrSessionData?: HydratedSessionData, initialRole?: string, initialUser?: any): AuthProviderAPI {
   // SSR-safe: If running on the server, return minimal context
   if (typeof window === 'undefined') {
     return {
@@ -79,9 +79,9 @@ export function useAuthProvider(ssrSessionData?: HydratedSessionData): AuthProvi
   const queryClient = useQueryClient();
 
   // State
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(initialUser || null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<any | null>(null); // Use UserProfile type if available
+  const [profile, setProfile] = useState<any | null>(initialRole ? { role: initialRole } : null); // Use UserProfile type if available
   const [isSessionInitialized, setIsSessionInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<AuthStatus>('idle');
