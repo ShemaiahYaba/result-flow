@@ -23,13 +23,15 @@ const navItems = [
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   // SSR: fetch session and profile
   const { session, user, isAuthenticated } = await getServerSession();
+  // DEBUG: Log SSR session
+  console.log("SSR session at /admin:", session);
   if (!isAuthenticated || !user) {
-    redirect("/admin");
+    redirect("/");
   }
   // Fetch profile for role check
   const profile = await getProfileById(user.id);
   if (!profile || profile.role !== "admin") {
-    redirect("/admin");
+    redirect("/");
   }
 
   // Hydrate role and user to client

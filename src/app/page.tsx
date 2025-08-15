@@ -13,7 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useGlobalContext } from "@/contexts/GlobalContext";
+import router from "next/router";
 
 type RoleType = 'student' | 'hod' | 'admin';
 
@@ -40,9 +42,9 @@ function LoginForm({ role, cta }: { role: string; cta: string }) {
       await login(identifier, password, apiRole);
       
       // On success, redirect based on role
-      if (role === "Student") window.location.href = "/student";
-      else if (role === "HOD") window.location.href = "/hod";
-      else if (role === "Admin") window.location.href = "/admin";
+      if (role === "Student") router.push("/student");
+      else if (role === "HOD") router.push("/hod");
+      else if (role === "Admin") router.push("/admin");
     } catch (err: any) {
       setError(err?.message || "Login failed. Please try again.");
     } finally {
