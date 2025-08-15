@@ -6,7 +6,12 @@ import { type HydratedSessionData } from '../utils/auth/session-hydration';
 
 interface AuthContextProps extends AuthProviderAPI {}
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+interface ExtendedAuthContextProps extends AuthProviderAPI {
+  loading: boolean;
+  role: 'student' | 'admin' | 'hod' | '';
+}
+
+const AuthContext = createContext<ExtendedAuthContextProps | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -40,8 +45,24 @@ interface AuthProviderProps {
 export function AuthProvider({ children, ssrSessionData }: AuthProviderProps) {
   const authAPI = useAuthProvider(ssrSessionData);
 
+  // Derive guaranteed role and loading
+  let role: 'student' | 'admin' | 'hod' | '' = '';
+  if (authAPI?.profile && typeof authAPI.profile.role === 'string') {
+    if (["student", "admin", "hod"].includes(authAPI.profile.role)) {
+      role = authAPI.profile.role;
+    }
+  }
+  // Use isLoading or status
+  const loading = authAPI.isLoading || authAPI.status === 'checking' || authAPI.status === 'loading';
+
+  const extendedValue: ExtendedAuthContextProps = {
+    ...authAPI,
+    loading,
+    role,
+  };
+
   return (
-    <AuthContext.Provider value={authAPI}>
+    <AuthContext.Provider value={extendedValue}>
       {children}
     </AuthContext.Provider>
   );
@@ -55,7 +76,7 @@ export function AuthProvider({ children, ssrSessionData }: AuthProviderProps) {
  * const { user, isAuthenticated, login, logout, retryAuth } = useAuth();
  * ```
  */
-export function useAuth(): AuthContextProps {
+export function useAuth(): ExtendedAuthContextProps {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
