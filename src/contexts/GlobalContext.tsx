@@ -444,6 +444,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: a
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
+        credentials: 'include',
       });
       console.log('[LOGIN] Response status:', response.status);
       let result;
