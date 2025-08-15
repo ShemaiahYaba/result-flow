@@ -16,9 +16,7 @@ export const studentSchema = z.object({
     .min(2, "Full name must be at least 2 characters")
     .max(255, "Full name must be less than 255 characters")
     .regex(/^[A-Za-z\s]+$/, "Full name can only contain letters and spaces"),
-  level: z.enum(["100", "200", "300", "400", "500"], {
-    errorMap: () => ({ message: "Level must be 100, 200, 300, 400, or 500" })
-  }),
+  level: z.enum(["100", "200", "300", "400", "500"]).describe("Level must be 100, 200, 300, 400, or 500"),
   department_id: z.string().uuid("Invalid department ID"),
   session_id: z.string().uuid("Invalid session ID"),
   enrollment_date: z.string().datetime("Invalid enrollment date").optional(),
