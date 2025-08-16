@@ -404,8 +404,6 @@ interface GlobalProviderProps {
   supabaseSessionData?: Session | null;
 }
 
-'use client';
-
 export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supabaseSessionData = null }) => {
   const router = useRouter();
   const [session, setSession] = React.useState<Session | null>(supabaseSessionData);

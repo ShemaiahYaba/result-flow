@@ -1,9 +1,12 @@
+'use client';
+
 // app/admin/layout.tsx
 import type { ReactNode } from "react";
 import { LayoutDashboard, Gavel, FileSliders, CheckCircle, Building, UserCog } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { Header } from "@/components/layout/header";
+import { GlobalProvider } from "@/contexts/GlobalContext";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -13,12 +16,6 @@ const navItems = [
   { href: "/admin/marksheet-format", label: "Marksheet Format", icon: FileSliders },
   { href: "/admin/approve-results", label: "Approve Results", icon: CheckCircle },
 ];
-
-
-
-'use client';
-
-import { GlobalProvider } from "@/contexts/GlobalContext";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -36,5 +33,3 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </GlobalProvider>
   );
 }
-
-

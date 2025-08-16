@@ -8,8 +8,6 @@ export const dynamic = 'force-dynamic';
 import { requireUser } from "@/lib/auth";
 import { GlobalProvider } from "@/contexts/GlobalContext";
 
-'use client';
-
 export default function HodDashboardPage() {
   return (
     <GlobalProvider>
