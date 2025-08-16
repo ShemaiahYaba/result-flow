@@ -11,7 +11,7 @@ export default async function AdminPage() {
   const cookieHeader = cookies().toString();
   let user, session, error;
   try {
-    user = await requireUser(cookieHeader);
+    user = requireUser();
   } catch (e) {
     console.error('[ADMIN PAGE] requireUser threw:', e);
     throw e;

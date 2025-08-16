@@ -23,7 +23,7 @@ import { cookies } from "next/headers";
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   // SSR: fetch session and user (throws if not authenticated)
   const cookieHeader = cookies().toString();
-  const user = await requireUser(cookieHeader);
+  const user = requireUser();
   const supabase = createServerSupabase(cookieHeader);
   const { data: { session } } = await supabase.auth.getSession();
 
