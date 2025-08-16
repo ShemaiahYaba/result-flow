@@ -10,6 +10,7 @@ type IdType = typeof ALLOWED_ID_TYPES[number];
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log('API /lookup-email received:', body); // Debug log
     const { idType, idValue } = body;
 
     // Validate idType
