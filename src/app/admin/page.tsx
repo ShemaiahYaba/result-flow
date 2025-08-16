@@ -12,8 +12,6 @@ const mockStats: DashboardStats = {
   pendingApprovals: 2,
 };
 
-'use client';
-
 export default function AdminPage() {
   const { session } = useGlobalContext();
   if (!session) {
