@@ -7,9 +7,9 @@ import { LayoutDashboard, Upload, FileText } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { Header } from "@/components/layout/header";
-import { getServerSession } from "@/utils/auth/ssr-session";
-import { getProfileById } from "@/utils/auth/ssr-profile";
-import { HodShell } from "@/components/HodShell";
+import { requireUser } from "@/lib/auth";
+import { createServerSupabase } from "@/lib/supabase";
+import { GlobalProvider } from "@/contexts/GlobalContext";
 
 const navItems = [
   { href: "/hod", label: "Dashboard", icon: LayoutDashboard },
@@ -18,20 +18,17 @@ const navItems = [
 ];
 
 export default async function HodLayout({ children }: { children: ReactNode }) {
-  // SSR: fetch session and profile
-  const { session, user, isAuthenticated } = await getServerSession();
-  if (!isAuthenticated || !user) {
-    redirect("/");
-  }
-  // Fetch profile for role check
-  const profile = await getProfileById(user.id);
-  if (!profile || profile.role !== "hod") {
-    redirect("/");
-  }
+  // SSR: fetch session and user (throws if not authenticated)
+  const user = await requireUser();
+  const supabase = createServerSupabase();
+  const { data: { session } } = await supabase.auth.getSession();
+  // Optionally, fetch profile/role here if needed for sidebar, etc.
+  // If you want to enforce role, fetch profile and check role:
+  // const profile = await getProfileById(user.id);
+  // if (!profile || profile.role !== "hod") redirect("/");
 
-  // Hydrate role and user to client
   return (
-    <HodShell initialRole={profile.role} initialUser={user}>
+    <GlobalProvider supabaseSessionData={session}>
       <SidebarProvider>
         <Sidebar variant="inset" collapsible="icon">
           <DashboardSidebar navItems={navItems} />
@@ -41,7 +38,7 @@ export default async function HodLayout({ children }: { children: ReactNode }) {
           <main className="flex-1 p-4 md:p-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>
-    </HodShell>
+    </GlobalProvider>
   );
 }
 
