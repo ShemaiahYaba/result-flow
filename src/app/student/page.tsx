@@ -15,12 +15,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Download } from "lucide-react";
+import { GlobalProvider } from "@/contexts/GlobalContext";
 
 export const dynamic = 'force-dynamic';
-
-import { requireUser } from "@/lib/auth";
-import { createServerSupabase } from "@/lib/supabase";
-import { GlobalProvider } from "@/contexts/GlobalContext";
 
 const currentResults = [
     { code: 'CSC 411', title: 'Compiler Construction', units: 3, grade: 'A', score: 85 },
@@ -29,13 +26,9 @@ const currentResults = [
     { code: 'CSC 499', title: 'Project', units: 6, grade: 'A', score: 78 },
 ];
 
-export default async function StudentDashboardPage() {
-  await requireUser();
-  const supabase = createServerSupabase();
-  const { data: { session } } = await supabase.auth.getSession();
-
+export default function StudentDashboardPage() {
   return (
-    <GlobalProvider supabaseSessionData={session}>
+    <GlobalProvider>
       <StudentDashboard />
     </GlobalProvider>
   );

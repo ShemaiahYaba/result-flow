@@ -1,14 +1,10 @@
+'use client';
 
-// app/student/layout.tsx
-// Server Component: SSR role check before React mounts
-import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { LayoutDashboard, History, User } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { Header } from "@/components/layout/header";
-import { requireUser } from "@/lib/auth";
-import { createServerSupabase } from "@/lib/supabase";
 import { GlobalProvider } from "@/contexts/GlobalContext";
 
 const navItems = [
@@ -17,18 +13,9 @@ const navItems = [
   { href: "/student/profile", label: "My Profile", icon: User },
 ];
 
-export default async function StudentLayout({ children }: { children: ReactNode }) {
-  // SSR: fetch session and user (throws if not authenticated)
-  const user = await requireUser();
-  const supabase = createServerSupabase();
-  const { data: { session } } = await supabase.auth.getSession();
-  // Optionally, fetch profile/role here if needed for sidebar, etc.
-  // If you want to enforce role, fetch profile and check role:
-  // const profile = await getProfileById(user.id);
-  // if (!profile || profile.role !== "student") redirect("/");
-
+export default function StudentLayout({ children }: { children: ReactNode }) {
   return (
-    <GlobalProvider supabaseSessionData={session}>
+    <GlobalProvider>
       <SidebarProvider>
         <Sidebar variant="inset" collapsible="icon">
           <DashboardSidebar navItems={navItems} />

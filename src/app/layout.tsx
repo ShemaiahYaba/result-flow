@@ -12,26 +12,16 @@ export const metadata: Metadata = {
   description: "A comprehensive result management system for universities",
 };
 
-import { createServerSupabase } from "@/lib/supabase";
-
 export const dynamic = 'force-dynamic';
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const supabase = createServerSupabase();
-  const { data: { session } } = await supabase.auth.getSession();
+'use client';
 
-  // You can pass session, user, or null as needed
-  const supabaseSessionData = session || null;
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
         <ErrorBoundary>
-          <GlobalProvider supabaseSessionData={supabaseSessionData}>
+          <GlobalProvider>
             {children}
             <NotificationSystem />
           </GlobalProvider>

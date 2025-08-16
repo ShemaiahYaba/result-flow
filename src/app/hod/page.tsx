@@ -6,16 +6,13 @@ import { Users, Book, Upload } from "lucide-react";
 export const dynamic = 'force-dynamic';
 
 import { requireUser } from "@/lib/auth";
-import { createServerSupabase } from "@/lib/supabase";
 import { GlobalProvider } from "@/contexts/GlobalContext";
 
-export default async function HodDashboardPage() {
-  await requireUser();
-  const supabase = createServerSupabase();
-  const { data: { session } } = await supabase.auth.getSession();
+'use client';
 
+export default function HodDashboardPage() {
   return (
-    <GlobalProvider supabaseSessionData={session}>
+    <GlobalProvider>
       <HodDashboard />
     </GlobalProvider>
   );
