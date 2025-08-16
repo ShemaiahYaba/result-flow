@@ -9,11 +9,24 @@ import { cookies } from "next/headers";
 
 export default async function AdminPage() {
   const cookieHeader = cookies().toString();
-  // Throws if not authenticated
-  const user = await requireUser(cookieHeader);
+  let user, session, error;
+  try {
+    user = await requireUser(cookieHeader);
+  } catch (e) {
+    console.error('[ADMIN PAGE] requireUser threw:', e);
+    throw e;
+  }
   const supabase = createServerSupabase(cookieHeader);
-  // Fetch session for context
-  const { data: { session } } = await supabase.auth.getSession();
+  const sessionResult = await supabase.auth.getSession();
+  session = sessionResult.data.session;
+  error = sessionResult.error;
+  console.log('[ADMIN PAGE] session:', session);
+  console.log('[ADMIN PAGE] error:', error);
+  console.log('[ADMIN PAGE] user:', user);
+
+  if (!session || error) {
+    throw new Error('Unauthorized: session missing or error');
+  }
 
   // Fetch stats from tables: hods, departments, courses, results (pending)
   const [{ count: totalHods }, { count: departments }, { count: courses }, { count: pendingApprovals }] = await Promise.all([
