@@ -16,6 +16,12 @@ import {
 } from "@/components/ui/table";
 import { Download } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
+import { requireUser } from "@/lib/auth";
+import { createServerSupabase } from "@/lib/supabase";
+import { GlobalProvider } from "@/contexts/GlobalContext";
+
 const currentResults = [
     { code: 'CSC 411', title: 'Compiler Construction', units: 3, grade: 'A', score: 85 },
     { code: 'CSC 421', title: 'Artificial Intelligence', units: 3, grade: 'A', score: 92 },
@@ -23,9 +29,19 @@ const currentResults = [
     { code: 'CSC 499', title: 'Project', units: 6, grade: 'A', score: 78 },
 ];
 
-export const dynamic = 'force-dynamic';
+export default async function StudentDashboardPage() {
+  await requireUser();
+  const supabase = createServerSupabase();
+  const { data: { session } } = await supabase.auth.getSession();
 
-export default function StudentDashboard() {
+  return (
+    <GlobalProvider supabaseSessionData={session}>
+      <StudentDashboard />
+    </GlobalProvider>
+  );
+}
+
+function StudentDashboard() {
   return (
     <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -95,3 +111,4 @@ export default function StudentDashboard() {
     </div>
   );
 }
+

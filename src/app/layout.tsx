@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "A comprehensive result management system for universities",
 };
 
-import { getServerSession, serializeSessionForClient } from "@/utils/auth/ssr-session";
+import { createServerSupabase } from "@/lib/supabase";
 
 export const dynamic = 'force-dynamic';
 
@@ -21,14 +21,17 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const serverSession = await getServerSession();
-  const ssrSessionData = serializeSessionForClient(serverSession);
+  const supabase = createServerSupabase();
+  const { data: { session } } = await supabase.auth.getSession();
+
+  // You can pass session, user, or null as needed
+  const supabaseSessionData = session || null;
 
   return (
     <html lang="en">
       <body className={inter.className}>
         <ErrorBoundary>
-          <GlobalProvider ssrSessionData={ssrSessionData}>
+          <GlobalProvider supabaseSessionData={supabaseSessionData}>
             {children}
             <NotificationSystem />
           </GlobalProvider>

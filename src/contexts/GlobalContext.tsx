@@ -360,6 +360,8 @@ const initialState: GlobalState = {
 interface GlobalContextType {
   state: GlobalState;
   dispatch: React.Dispatch<GlobalAction>;
+  session: Session | null;
+  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
   // Auth helpers
   login: (email: string, password: string, role: 'student' | 'hod' | 'admin') => Promise<void>;
   logout: () => Promise<void>;
@@ -395,13 +397,25 @@ const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 // PROVIDER COMPONENT
 // ============================================================
 
+import type { Session } from '@supabase/supabase-js';
+
 interface GlobalProviderProps {
   children: React.ReactNode;
+  supabaseSessionData?: Session | null;
 }
 
-export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
+export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supabaseSessionData = null }) => {
   const router = useRouter();
+  const [session, setSession] = React.useState<Session | null>(supabaseSessionData);
   const [state, dispatch] = useReducer(globalReducer, initialState);
+
+  // Subscribe to Supabase auth changes
+  React.useEffect(() => {
+    const { data: listener } = createClient().auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   const login = async (email: string, password: string, _role: 'student' | 'hod' | 'admin') => {
     const supabase = createClient();
@@ -856,6 +870,8 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
   const contextValue: GlobalContextType = {
     state,
     dispatch,
+    session,
+    setSession,
     // Auth helpers
     login,
     logout,

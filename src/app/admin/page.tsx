@@ -1,6 +1,7 @@
 import AdminDashboard, { DashboardStats } from "./AdminDashboard";
 import { requireUser } from "@/lib/auth";
 import { createServerSupabase } from "@/lib/supabase";
+import { GlobalProvider } from "@/contexts/GlobalContext";
 
 export const dynamic = 'force-dynamic';
 
@@ -8,9 +9,10 @@ export default async function AdminPage() {
   // Throws if not authenticated
   const user = await requireUser();
   const supabase = createServerSupabase();
+  // Fetch session for context
+  const { data: { session } } = await supabase.auth.getSession();
 
   // Fetch stats from tables: hods, departments, courses, results (pending)
-  // These are example table names, adjust as needed for your schema
   const [{ count: totalHods }, { count: departments }, { count: courses }, { count: pendingApprovals }] = await Promise.all([
     supabase.from("hods").select("id", { count: "exact", head: true }),
     supabase.from("departments").select("id", { count: "exact", head: true }),
@@ -25,5 +27,9 @@ export default async function AdminPage() {
     pendingApprovals: pendingApprovals ?? 0,
   };
 
-  return <AdminDashboard stats={stats} />;
+  return (
+    <GlobalProvider supabaseSessionData={session}>
+      <AdminDashboard stats={stats} />
+    </GlobalProvider>
+  );
 }

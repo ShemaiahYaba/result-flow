@@ -5,14 +5,30 @@ import { Users, Book, Upload } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
-export default function HodDashboard() {
+import { requireUser } from "@/lib/auth";
+import { createServerSupabase } from "@/lib/supabase";
+import { GlobalProvider } from "@/contexts/GlobalContext";
+
+export default async function HodDashboardPage() {
+  await requireUser();
+  const supabase = createServerSupabase();
+  const { data: { session } } = await supabase.auth.getSession();
+
+  return (
+    <GlobalProvider supabaseSessionData={session}>
+      <HodDashboard />
+    </GlobalProvider>
+  );
+}
+
+// Move the dashboard UI to a separate component for clarity
+function HodDashboard() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold font-headline">HOD Dashboard</h1>
         <p className="text-muted-foreground">Welcome, Head of Department. Manage your department's results here.</p>
       </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -61,3 +77,4 @@ export default function HodDashboard() {
     </div>
   );
 }
+
