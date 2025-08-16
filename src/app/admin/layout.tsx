@@ -14,17 +14,28 @@ const navItems = [
   { href: "/admin/approve-results", label: "Approve Results", icon: CheckCircle },
 ];
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+import { requireUser } from "@/lib/auth";
+import { createServerSupabase } from "@/lib/supabase";
+import { GlobalProvider } from "@/contexts/GlobalContext";
+
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  // SSR: fetch session and user (throws if not authenticated)
+  const user = await requireUser();
+  const supabase = createServerSupabase();
+  const { data: { session } } = await supabase.auth.getSession();
+
   return (
-    <SidebarProvider>
-      <Sidebar variant="inset" collapsible="icon">
-        <DashboardSidebar navItems={navItems} />
-      </Sidebar>
-      <SidebarInset>
-        <Header />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <GlobalProvider supabaseSessionData={session}>
+      <SidebarProvider>
+        <Sidebar variant="inset" collapsible="icon">
+          <DashboardSidebar navItems={navItems} />
+        </Sidebar>
+        <SidebarInset>
+          <Header />
+          <main className="flex-1 p-4 md:p-6">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </GlobalProvider>
   );
 }
 
