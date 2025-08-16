@@ -18,10 +18,13 @@ import { requireUser } from "@/lib/auth";
 import { createServerSupabase } from "@/lib/supabase";
 import { GlobalProvider } from "@/contexts/GlobalContext";
 
+import { cookies } from "next/headers";
+
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   // SSR: fetch session and user (throws if not authenticated)
-  const user = await requireUser();
-  const supabase = createServerSupabase();
+  const cookieHeader = cookies().toString();
+  const user = await requireUser(cookieHeader);
+  const supabase = createServerSupabase(cookieHeader);
   const { data: { session } } = await supabase.auth.getSession();
 
   return (
