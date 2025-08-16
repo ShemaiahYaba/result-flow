@@ -5,10 +5,13 @@ import { GlobalProvider } from "@/contexts/GlobalContext";
 
 export const dynamic = 'force-dynamic';
 
+import { cookies } from "next/headers";
+
 export default async function AdminPage() {
+  const cookieHeader = cookies().toString();
   // Throws if not authenticated
-  const user = await requireUser();
-  const supabase = createServerSupabase();
+  const user = await requireUser(cookieHeader);
+  const supabase = createServerSupabase(cookieHeader);
   // Fetch session for context
   const { data: { session } } = await supabase.auth.getSession();
 
