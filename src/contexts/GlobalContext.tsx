@@ -424,12 +424,28 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       dispatch({ type: 'SET_USER', payload: data.user });
-      router.push('/admin');
+      // Fetch user's profile to determine role
+      let userProfile = null;
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+        if (profileError) throw profileError;
+        userProfile = profileData;
+      } catch (profileErr) {
+        throw new Error('Failed to fetch user profile for redirect');
+      }
+      let redirectPath = '/admin';
+      if (userProfile?.role === 'hod') redirectPath = '/hod';
+      else if (userProfile?.role === 'student') redirectPath = '/student';
+      router.push(redirectPath);
       dispatch({ type: 'ADD_NOTIFICATION', payload: {
         id: `login-redirect-${Date.now()}`,
         type: 'success',
         title: 'Redirecting',
-        message: 'Taking you to the admin dashboard...',
+        message: `Taking you to the ${userProfile?.role || 'admin'} dashboard...`,
         timestamp: new Date(),
       }});
     } catch (error) {
