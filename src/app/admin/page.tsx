@@ -1,10 +1,13 @@
 import AdminDashboard, { DashboardStats } from "./AdminDashboard";
-import { createClient } from "@/utils/supabase/server";
+import { requireUser } from "@/lib/auth";
+import { createServerSupabase } from "@/lib/supabase";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
-  const supabase = createClient();
+  // Throws if not authenticated
+  const user = await requireUser();
+  const supabase = createServerSupabase();
 
   // Fetch stats from tables: hods, departments, courses, results (pending)
   // These are example table names, adjust as needed for your schema
