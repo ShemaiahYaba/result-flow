@@ -31,6 +31,7 @@ function LoginForm({ role, cta }: { role: string; cta: string }) {
     setError(null);
     setLoading(true);
     try {
+      console.log('Login payload:', { idType, idValue }); // Debug log
       // 1. Lookup email from API
       const res = await fetch('/api/lookup-email', {
         method: 'POST',

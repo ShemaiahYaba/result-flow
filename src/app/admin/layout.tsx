@@ -18,7 +18,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
-        {/* <DashboardSidebar navItems={navItems} /> */}
+        <DashboardSidebar navItems={navItems} />
       </Sidebar>
       <SidebarInset>
         <Header />

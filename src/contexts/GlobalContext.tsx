@@ -423,7 +423,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
         id: `login-error-${Date.now()}`,
         type: 'error',
         title: 'Login Failed',
-        message: error?.message || 'Login failed',
+        message: (error && typeof error === 'object' && 'message' in error) ? (error as any).message : 'Login failed',
         timestamp: new Date(),
       }});
     } finally {
@@ -453,7 +453,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
         id: `logout-error-${Date.now()}`,
         type: 'error',
         title: 'Logout Failed',
-        message: error?.message || 'Logout failed',
+        message: (error && typeof error === 'object' && 'message' in error) ? (error as any).message : 'Logout failed',
         timestamp: new Date(),
       }});
     }
