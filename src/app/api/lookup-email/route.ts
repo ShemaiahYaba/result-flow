@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
     console.log('Environment check:');
     console.log('- SUPABASE_URL:', SUPABASE_URL ? '✅ Set' : '❌ Missing');
     console.log('- SERVICE_ROLE_KEY:', SERVICE_ROLE_KEY ? '✅ Set' : '❌ Missing');
+    console.log('Service role key length:', SERVICE_ROLE_KEY?.length);
     
     if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
       console.log('❌ Missing required environment variables');
