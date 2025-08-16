@@ -12,41 +12,44 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useGlobalContext } from "@/contexts/GlobalContext";
-
-type RoleType = 'student' | 'hod' | 'admin';
+import { createClient } from '@/utils/supabase/client';
+import { useState } from 'react';
 
 function LoginForm({ role, cta }: { role: string; cta: string }) {
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { login, state } = useGlobalContext();
   const router = useRouter();
+  const [idValue, setIdValue] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Determine idType based on role
+  const idType = role === 'Student' ? 'matric_number' : 'staff_id';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    setLoading(true);
     try {
-      // Map display role to strict union type
-      const roleMap: Record<string, RoleType> = {
-        Student: 'student',
-        HOD: 'hod',
-        Admin: 'admin',
-      };
-      const apiRole = roleMap[role];
-      if (!apiRole) throw new Error('Invalid role selected');
-      await login(identifier, password, apiRole);
-      
-      // On success, redirect based on role
-      if (role === "Student") router.push("/student");
-      else if (role === "HOD") router.push("/hod");
-      else if (role === "Admin") router.push("/admin");
+      // 1. Lookup email from API
+      const res = await fetch('/api/lookup-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idType, idValue }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Lookup failed');
+      }
+      const { email } = await res.json();
+      // 2. Login with Supabase
+      const supabase = createClient();
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+      if (loginError) throw new Error(loginError.message);
+      // 3. Redirect on success
+      router.push('/admin');
     } catch (err: any) {
-      setError(err?.message || "Login failed. Please try again.");
+      setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -62,9 +65,10 @@ function LoginForm({ role, cta }: { role: string; cta: string }) {
           <Input
             id={`${role}-id`}
             placeholder={role === "Student" ? "F/HD/21/1234567" : "STF-001"}
-            value={identifier}
-            onChange={e => setIdentifier(e.target.value)}
             required
+            value={idValue}
+            onChange={e => setIdValue(e.target.value)}
+            disabled={loading}
           />
         </div>
         <div className="space-y-2">
@@ -72,15 +76,16 @@ function LoginForm({ role, cta }: { role: string; cta: string }) {
           <Input
             id={`${role}-password`}
             type="password"
+            required
             value={password}
             onChange={e => setPassword(e.target.value)}
-            required
+            disabled={loading}
           />
         </div>
+        {error && <div className="text-red-500 text-sm">{error}</div>}
         <Button type="submit" className="w-full !mt-6" disabled={loading}>
-          {loading ? "Logging in..." : cta}
+          {loading ? 'Logging in...' : cta}
         </Button>
-        {error && <div className="text-red-600 text-sm text-center">{error}</div>}
         {role === "Student" && (
           <div className="text-center text-sm">
             Don't have an account? <a href="/register" className="underline text-primary">Sign Up</a>
@@ -90,8 +95,6 @@ function LoginForm({ role, cta }: { role: string; cta: string }) {
     </CardContent>
   );
 }
-
-export const dynamic = 'force-dynamic';
 
 export default function Home() {
   return (

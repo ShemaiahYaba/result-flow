@@ -1,26 +1,19 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import React, { createContext, useReducer, useContext, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '../utils/supabase/client';
-const supabase = createClient();
 
 // ============================================================
 // TYPES & INTERFACES
 // ============================================================
 
+// User profile interface (simplified)
 export interface UserProfile {
   id: string;
   fullname: string;
   email: string;
-  phone_number?: string;
-  department_id?: string;
   role: 'admin' | 'hod' | 'student';
-  status: 'active' | 'inactive' | 'suspended';
-  matric_number?: string;
-  staff_id?: string;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface Department {
@@ -132,8 +125,7 @@ export interface SystemSetting {
 // ============================================================
 
 export interface AuthState {
-  user: User | null;
-  session: Session | null;
+  user: any | null;
   profile: UserProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -181,8 +173,7 @@ export interface GlobalState {
 // ============================================================
 
 export type AuthAction =
-  | { type: 'SET_USER'; payload: User | null }
-  | { type: 'SET_SESSION'; payload: Session | null }
+  | { type: 'SET_USER'; payload: any | null }
   | { type: 'SET_PROFILE'; payload: UserProfile | null }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'LOGOUT' };
@@ -222,12 +213,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         ...state,
         user: action.payload,
-        isAuthenticated: !!action.payload,
-      };
-    case 'SET_SESSION':
-      return {
-        ...state,
-        session: action.payload,
+        isAuthenticated: true,
       };
     case 'SET_PROFILE':
       return {
@@ -242,7 +228,6 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
     case 'LOGOUT':
       return {
         user: null,
-        session: null,
         profile: null,
         isLoading: false,
         isAuthenticated: false,
@@ -336,11 +321,15 @@ const globalReducer = (state: GlobalState, action: GlobalAction): GlobalState =>
 
 const initialState: GlobalState = {
   auth: {
-    user: null,
-    session: null,
-    profile: null,
-    isLoading: true,
-    isAuthenticated: false,
+    user: { id: 'demo-user' },
+    profile: {
+      id: 'demo-user',
+      fullname: 'Demo User',
+      email: 'demo@example.com',
+      role: 'admin' as const,
+    },
+    isLoading: false,
+    isAuthenticated: true,
   },
   data: {
     departments: [],
@@ -372,7 +361,7 @@ interface GlobalContextType {
   state: GlobalState;
   dispatch: React.Dispatch<GlobalAction>;
   // Auth helpers
-  login: (identifier: string, password: string, role: 'student' | 'hod' | 'admin') => Promise<void>;
+  login: (email: string, password: string, role: 'student' | 'hod' | 'admin') => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
   // Data helpers
@@ -407,120 +396,73 @@ const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 // ============================================================
 
 interface GlobalProviderProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: any }> = ({ children, ssrSessionData }) => {
+export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
+  const router = useRouter();
   const [state, dispatch] = useReducer(globalReducer, initialState);
-  // SSR session hydration
-  React.useEffect(() => {
-    if (ssrSessionData && typeof window !== 'undefined') {
-      // Only hydrate if not already authenticated
-      if (ssrSessionData.user && !state.auth.user) {
-        dispatch({ type: 'SET_USER', payload: ssrSessionData.user });
-        dispatch({ type: 'SET_SESSION', payload: ssrSessionData.session });
-        dispatch({ type: 'SET_PROFILE', payload: ssrSessionData.user }); // or fetch full profile if needed
-        dispatch({ type: 'SET_LOADING', payload: false });
-      } else if (!ssrSessionData.user) {
-        dispatch({ type: 'SET_LOADING', payload: false });
-      }
-    }
-  }, [ssrSessionData, state.auth.user]);
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-  const headers = new Headers();
-  headers.set('Content-Type', 'application/json');
-  headers.set('apikey', anonKey);
-  headers.set('Authorization', `Bearer ${anonKey}`);
-
-  const login = async (identifier: string, password: string, role: 'student' | 'hod' | 'admin') => {
+  const login = async (email: string, password: string, _role: 'student' | 'hod' | 'admin') => {
+    const supabase = createClient();
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      // Step 1: Get email from Edge Function
-      const emailRes = await fetch('https://mycaofkqpuxfsmmxwmow.supabase.co/functions/v1/get-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier }),
-      });
-      if (!emailRes.ok) {
-        throw new Error('Identifier not found');
-      }
-      const { email } = await emailRes.json();
-      // Step 2: Sign in with Supabase client
-      const supabase = (await import('@supabase/auth-helpers-nextjs')).createClientComponentClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) {
-        throw signInError;
-      }
-      dispatch({ type: 'SET_LOADING', payload: false });
-      dispatch({
-        type: 'ADD_NOTIFICATION',
-        payload: {
-          id: `login-success-${Date.now()}`,
-          type: 'success',
-          title: 'Login Successful',
-          message: `Welcome back!`,
-          timestamp: new Date(),
-        },
-      });
-    } catch (error: any) {
-      dispatch({ type: 'SET_LOADING', payload: false });
-      console.error('[LOGIN] Login error (catch):', error);
-      dispatch({
-        type: 'ADD_NOTIFICATION',
-        payload: {
-          id: `login-error-${Date.now()}`,
-          type: 'error',
-          title: 'Login Failed',
-          message: error.message,
-          timestamp: new Date(),
-        },
-      });
-      console.log('[LOGIN] After ADD_NOTIFICATION dispatch (catch)');
-      throw error;
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      dispatch({ type: 'SET_USER', payload: data.user });
+      router.push('/admin');
+      dispatch({ type: 'ADD_NOTIFICATION', payload: {
+        id: `login-redirect-${Date.now()}`,
+        type: 'success',
+        title: 'Redirecting',
+        message: 'Taking you to the admin dashboard...',
+        timestamp: new Date(),
+      }});
+    } catch (error) {
+      dispatch({ type: 'ADD_NOTIFICATION', payload: {
+        id: `login-error-${Date.now()}`,
+        type: 'error',
+        title: 'Login Failed',
+        message: error?.message || 'Login failed',
+        timestamp: new Date(),
+      }});
     } finally {
-      console.log('[LOGIN] In finally. Setting loading to false.');
       dispatch({ type: 'SET_LOADING', payload: false });
-      console.log('[LOGIN] Login workflow finished.');
     }
   };
 
-  // Only one definition for logout, updateProfile, and fetchDepartments is allowed!
-  // Remove any duplicate definitions below this point. This block is the canonical version.
-  // --- LOGOUT ---
   const logout = async () => {
+    const supabase = createClient();
     try {
       await supabase.auth.signOut();
       dispatch({ type: 'LOGOUT' });
       dispatch({ type: 'CLEAR_DATA' });
+      router.push('/login');
       dispatch({
         type: 'ADD_NOTIFICATION',
         payload: {
           id: `logout-success-${Date.now()}`,
           type: 'info',
           title: 'Logged Out',
-          message: 'You have been successfully logged out.',
+          message: 'You have been logged out.',
           timestamp: new Date(),
         },
       });
     } catch (error) {
-      console.error('Logout error:', error);
-      throw error;
+      dispatch({ type: 'ADD_NOTIFICATION', payload: {
+        id: `logout-error-${Date.now()}`,
+        type: 'error',
+        title: 'Logout Failed',
+        message: error?.message || 'Logout failed',
+        timestamp: new Date(),
+      }});
     }
   };
 
-  // --- UPDATE PROFILE ---
   const updateProfile = async (profileUpdates: Partial<UserProfile>) => {
     try {
-      if (!state.auth.user?.id) throw new Error('No user logged in');
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(profileUpdates)
-        .eq('id', state.auth.user.id)
-        .select()
-        .single();
-      if (error) throw error;
-      dispatch({ type: 'SET_PROFILE', payload: data });
+      const updatedProfile = { ...state.auth.profile, ...profileUpdates } as UserProfile;
+      dispatch({ type: 'SET_PROFILE', payload: updatedProfile });
       dispatch({
         type: 'ADD_NOTIFICATION',
         payload: {
@@ -533,59 +475,54 @@ export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: a
       });
     } catch (error) {
       console.error('Profile update error:', error);
-      dispatch({
-        type: 'ADD_NOTIFICATION',
-        payload: {
-          id: `profile-error-${Date.now()}`,
-          type: 'error',
-          title: 'Update Failed',
-          message: 'Failed to update profile. Please try again.',
-          timestamp: new Date(),
-        },
-      });
       throw error;
     }
   };
 
-  // --- FETCH DEPARTMENTS ---
   const fetchDepartments = async () => {
     try {
       dispatch({ type: 'SET_DATA_LOADING', payload: true });
-      const { data, error } = await supabase
-        .from('departments')
-        .select('*')
-        .order('department_name');
-      if (error) throw error;
-      dispatch({ type: 'SET_DEPARTMENTS', payload: data });
+      // Simulate API call with mock data
+      const mockDepartments = [
+        { id: '1', department_name: 'Computer Science', department_code: 'CSC', is_active: true },
+        { id: '2', department_name: 'Mathematics', department_code: 'MTH', is_active: true },
+      ];
+      dispatch({ type: 'SET_DEPARTMENTS', payload: mockDepartments });
     } catch (error: any) {
       console.error('Fetch departments error:', error);
       dispatch({ type: 'SET_DATA_ERROR', payload: 'Failed to fetch departments' });
-      dispatch({
-        type: 'ADD_NOTIFICATION',
-        payload: {
-          id: `fetch-error-${Date.now()}`,
-          type: 'error',
-          title: 'Data Fetch Error',
-          message: 'Failed to load departments. Please refresh the page.',
-          timestamp: new Date(),
-        },
-      });
     } finally {
       dispatch({ type: 'SET_DATA_LOADING', payload: false });
     }
   };
 
   // ============================================================
-  // DATA HELPERS
+  // DATA HELPERS (simplified with mock data)
   // ============================================================
 
   const fetchAcademicSessions = async () => {
     try {
       dispatch({ type: 'SET_DATA_LOADING', payload: true });
-      // TODO: Implement Supabase fetch
-      // const { data, error } = await supabase.from('academic_sessions').select('*');
-      // if (error) throw error;
-      // dispatch({ type: 'SET_ACADEMIC_SESSIONS', payload: data });
+      // Mock data with proper types
+      const mockSessions: AcademicSession[] = [
+        { 
+          id: '1', 
+          session_name: '2023/2024', 
+          semester: 'First', 
+          is_active: true,
+          start_date: '2023-09-01',
+          end_date: '2024-05-31'
+        },
+        { 
+          id: '2', 
+          session_name: '2022/2023', 
+          semester: 'Second', 
+          is_active: false,
+          start_date: '2023-01-01',
+          end_date: '2023-05-31'
+        }
+      ];
+      dispatch({ type: 'SET_ACADEMIC_SESSIONS', payload: mockSessions });
     } catch (error) {
       console.error('Fetch academic sessions error:', error);
       dispatch({ type: 'SET_DATA_ERROR', payload: 'Failed to fetch academic sessions' });
@@ -597,10 +534,32 @@ export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: a
   const fetchCourses = async () => {
     try {
       dispatch({ type: 'SET_DATA_LOADING', payload: true });
-      // TODO: Implement Supabase fetch
-      // const { data, error } = await supabase.from('courses').select('*');
-      // if (error) throw error;
-      // dispatch({ type: 'SET_COURSES', payload: data });
+      // Mock data with proper types
+      const mockCourses: Course[] = [
+        { 
+          id: '1', 
+          course_code: 'CSC 101', 
+          course_title: 'Introduction to Computer Science', 
+          unit: 3, 
+          level: 100, 
+          semester: 'First', 
+          department_id: '1', 
+          is_active: true,
+          description: 'Introductory computer science course'
+        },
+        { 
+          id: '2', 
+          course_code: 'MTH 101', 
+          course_title: 'General Mathematics', 
+          unit: 2, 
+          level: 100, 
+          semester: 'First', 
+          department_id: '2', 
+          is_active: true,
+          description: 'Fundamental mathematics course'
+        }
+      ];
+      dispatch({ type: 'SET_COURSES', payload: mockCourses });
     } catch (error) {
       console.error('Fetch courses error:', error);
       dispatch({ type: 'SET_DATA_ERROR', payload: 'Failed to fetch courses' });
@@ -612,10 +571,32 @@ export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: a
   const fetchStudents = async () => {
     try {
       dispatch({ type: 'SET_DATA_LOADING', payload: true });
-      // TODO: Implement Supabase fetch
-      // const { data, error } = await supabase.from('students').select('*');
-      // if (error) throw error;
-      // dispatch({ type: 'SET_STUDENTS', payload: data });
+      // Mock data with proper types
+      const mockStudents: Student[] = [
+        { 
+          id: '1', 
+          matric_number: 'F/HD/21/1234567', 
+          full_name: 'John Doe', 
+          level: 100, 
+          department_id: '1',
+          profile_id: 'profile-1',
+          session_id: '1',
+          enrollment_date: '2021-09-01',
+          is_active: true
+        },
+        { 
+          id: '2', 
+          matric_number: 'F/HD/21/7654321', 
+          full_name: 'Jane Smith', 
+          level: 200, 
+          department_id: '1',
+          profile_id: 'profile-2',
+          session_id: '1',
+          enrollment_date: '2021-09-01',
+          is_active: true
+        }
+      ];
+      dispatch({ type: 'SET_STUDENTS', payload: mockStudents });
     } catch (error) {
       console.error('Fetch students error:', error);
       dispatch({ type: 'SET_DATA_ERROR', payload: 'Failed to fetch students' });
@@ -627,10 +608,36 @@ export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: a
   const fetchResults = async () => {
     try {
       dispatch({ type: 'SET_DATA_LOADING', payload: true });
-      // TODO: Implement Supabase fetch
-      // const { data, error } = await supabase.from('results').select('*');
-      // if (error) throw error;
-      // dispatch({ type: 'SET_RESULTS', payload: data });
+      // Mock data with proper types
+      const mockResults: Result[] = [
+        { 
+          id: '1', 
+          student_id: '1', 
+          course_id: '1', 
+          session_id: '1', 
+          score: 85, 
+          grade: 'A', 
+          grade_point: 5.0, 
+          status: 'approved',
+          submitted_by: 'system',
+          policy_version: 1,
+          remarks: 'Excellent performance'
+        },
+        { 
+          id: '2', 
+          student_id: '2', 
+          course_id: '1', 
+          session_id: '1', 
+          score: 72, 
+          grade: 'B', 
+          grade_point: 4.0, 
+          status: 'approved',
+          submitted_by: 'system',
+          policy_version: 1,
+          remarks: 'Good performance'
+        }
+      ];
+      dispatch({ type: 'SET_RESULTS', payload: mockResults });
     } catch (error) {
       console.error('Fetch results error:', error);
       dispatch({ type: 'SET_DATA_ERROR', payload: 'Failed to fetch results' });
@@ -642,10 +649,23 @@ export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: a
   const fetchResultSubmissions = async () => {
     try {
       dispatch({ type: 'SET_DATA_LOADING', payload: true });
-      // TODO: Implement Supabase fetch
-      // const { data, error } = await supabase.from('result_submissions').select('*');
-      // if (error) throw error;
-      // dispatch({ type: 'SET_RESULT_SUBMISSIONS', payload: data });
+      // Mock data with proper types
+      const mockSubmissions: ResultSubmission[] = [
+        { 
+          id: '1', 
+          department_id: '1', 
+          course_id: '1', 
+          session_id: '1', 
+          status: 'approved', 
+          submitted_date: '2023-06-15',
+          submitted_by: 'demo-user',
+          version_number: 1,
+          total_records: 2,
+          processed_records: 2,
+          failed_records: 0
+        }
+      ];
+      dispatch({ type: 'SET_RESULT_SUBMISSIONS', payload: mockSubmissions });
     } catch (error) {
       console.error('Fetch result submissions error:', error);
       dispatch({ type: 'SET_DATA_ERROR', payload: 'Failed to fetch result submissions' });
@@ -657,10 +677,12 @@ export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: a
   const fetchGradingPolicies = async () => {
     try {
       dispatch({ type: 'SET_DATA_LOADING', payload: true });
-      // TODO: Implement Supabase fetch
-      // const { data, error } = await supabase.from('grading_policies').select('*');
-      // if (error) throw error;
-      // dispatch({ type: 'SET_GRADING_POLICIES', payload: data });
+      // Mock data
+      const mockPolicies = [
+        { id: '1', grade: 'A', min_score: 70, max_score: 100, grade_point: 5.0, version: 1, is_active: true },
+        { id: '2', grade: 'B', min_score: 60, max_score: 69, grade_point: 4.0, version: 1, is_active: true },
+      ];
+      dispatch({ type: 'SET_GRADING_POLICIES', payload: mockPolicies });
     } catch (error) {
       console.error('Fetch grading policies error:', error);
       dispatch({ type: 'SET_DATA_ERROR', payload: 'Failed to fetch grading policies' });
@@ -672,10 +694,26 @@ export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: a
   const fetchMarksheetColumns = async () => {
     try {
       dispatch({ type: 'SET_DATA_LOADING', payload: true });
-      // TODO: Implement Supabase fetch
-      // const { data, error } = await supabase.from('marksheet_columns').select('*');
-      // if (error) throw error;
-      // dispatch({ type: 'SET_MARKSHEET_COLUMNS', payload: data });
+      // Mock data with proper types
+      const mockColumns: MarksheetColumn[] = [
+        { 
+          id: '1', 
+          column_name: 'Matric Number', 
+          type: 'identifier', 
+          required: true, 
+          order_index: 1, 
+          is_active: true 
+        },
+        { 
+          id: '2', 
+          column_name: 'Score', 
+          type: 'score', 
+          required: true, 
+          order_index: 2, 
+          is_active: true 
+        }
+      ];
+      dispatch({ type: 'SET_MARKSHEET_COLUMNS', payload: mockColumns });
     } catch (error) {
       console.error('Fetch marksheet columns error:', error);
       dispatch({ type: 'SET_DATA_ERROR', payload: 'Failed to fetch marksheet columns' });
@@ -687,10 +725,12 @@ export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: a
   const fetchSystemSettings = async () => {
     try {
       dispatch({ type: 'SET_DATA_LOADING', payload: true });
-      // TODO: Implement Supabase fetch
-      // const { data, error } = await supabase.from('system_settings').select('*');
-      // if (error) throw error;
-      // dispatch({ type: 'SET_SYSTEM_SETTINGS', payload: data });
+      // Mock data
+      const mockSettings = [
+        { id: '1', setting_key: 'app_name', setting_value: 'ResultFlow', is_active: true },
+        { id: '2', setting_key: 'institution_name', setting_value: 'Demo University', is_active: true },
+      ];
+      dispatch({ type: 'SET_SYSTEM_SETTINGS', payload: mockSettings });
     } catch (error) {
       console.error('Fetch system settings error:', error);
       dispatch({ type: 'SET_DATA_ERROR', payload: 'Failed to fetch system settings' });
@@ -777,27 +817,36 @@ export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: a
   // ============================================================
 
   useEffect(() => {
-    // Initialize theme from localStorage
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
-    if (savedTheme) {
-      dispatch({ type: 'SET_THEME', payload: savedTheme });
-    }
+    // Only run on client side
+    if (typeof window !== 'undefined') {
+      // Initialize theme from localStorage
+      const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+      if (savedTheme) {
+        dispatch({ type: 'SET_THEME', payload: savedTheme });
+      }
 
-    // Initialize language from localStorage
-    const savedLanguage = localStorage.getItem('language') as 'en' | 'fr' | 'es';
-    if (savedLanguage) {
-      dispatch({ type: 'SET_LANGUAGE', payload: savedLanguage });
+      // Initialize language from localStorage
+      const savedLanguage = localStorage.getItem('language') as 'en' | 'fr' | 'es' | null;
+      if (savedLanguage) {
+        dispatch({ type: 'SET_LANGUAGE', payload: savedLanguage });
+      }
     }
   }, []);
 
   useEffect(() => {
-    // Save theme to localStorage
-    localStorage.setItem('theme', state.ui.theme);
+    // Only run on client side
+    if (typeof window !== 'undefined') {
+      // Save theme to localStorage
+      localStorage.setItem('theme', state.ui.theme);
+    }
   }, [state.ui.theme]);
 
   useEffect(() => {
-    // Save language to localStorage
-    localStorage.setItem('language', state.ui.language);
+    // Only run on client side
+    if (typeof window !== 'undefined') {
+      // Save language to localStorage
+      localStorage.setItem('language', state.ui.language);
+    }
   }, [state.ui.language]);
 
   // ============================================================
