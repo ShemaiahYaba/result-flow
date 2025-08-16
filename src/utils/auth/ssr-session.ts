@@ -16,7 +16,6 @@ export async function getServerSession(): Promise<SSRAuthData> {
   try {
     const cookieStore = cookies();
     const supabase = createClient(cookieStore);
-    
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {

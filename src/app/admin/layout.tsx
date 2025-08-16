@@ -23,6 +23,21 @@ const navItems = [
 import { cookies } from "next/headers";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
+  // Forward cookies to Edge Function for SSR session validation
+  const cookieHeader = cookies().toString();
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/login-check`,
+    {
+      headers: {
+        cookie: cookieHeader,
+      },
+      credentials: "include",
+      cache: "no-store",
+    }
+  );
+  const edgeSession = await res.json();
+  console.log("Edge Function session", edgeSession);
+
   console.log("=== SSR AUTH DEBUG ===");
   // 1. Check if cookie exists at all
   const cookieStore = await cookies();

@@ -435,67 +435,36 @@ export const GlobalProvider: React.FC<GlobalProviderProps & { ssrSessionData?: a
 
   const login = async (identifier: string, password: string, role: 'student' | 'hod' | 'admin') => {
     try {
-      console.log('[LOGIN] Attempting login:', { identifier, password: '[REDACTED]', role });
       dispatch({ type: 'SET_LOADING', payload: true });
-      console.log('[LOGIN] After SET_LOADING dispatch');
-      const requestBody = { identifier, password, role };
-      console.log('[LOGIN] Request body:', requestBody);
-      const response = await fetch('https://mycaofkqpuxfsmmxwmow.supabase.co/functions/v1/login', {
+      // Step 1: Get email from Edge Function
+      const emailRes = await fetch('https://mycaofkqpuxfsmmxwmow.supabase.co/functions/v1/get-email', {
         method: 'POST',
-        headers,
-        body: JSON.stringify(requestBody),
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier }),
       });
-      console.log('[LOGIN] Response status:', response.status);
-      let result;
-      try {
-        result = await response.json();
-        console.log('[LOGIN] Response JSON:', result);
-      } catch (jsonErr) {
-        console.error('[LOGIN] Failed to parse JSON:', jsonErr);
-        throw new Error('Invalid response from server');
+      if (!emailRes.ok) {
+        throw new Error('Identifier not found');
       }
-      if (!response.ok) {
-        console.error('[LOGIN] Login failed:', result.message || result);
-        const errorMsg = result?.error || result?.message || 'Login failed. Please check your credentials.';
-        dispatch({
-          type: 'ADD_NOTIFICATION',
-          payload: {
-            id: `login-error-${Date.now()}`,
-            type: 'error',
-            title: 'Login Failed',
-            message: errorMsg,
-            timestamp: new Date(),
-          },
-        });
-        console.log('[LOGIN] After ADD_NOTIFICATION dispatch (error)');
-        throw new Error(errorMsg);
+      const { email } = await emailRes.json();
+      // Step 2: Sign in with Supabase client
+      const supabase = (await import('@supabase/auth-helpers-nextjs')).createClientComponentClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        throw signInError;
       }
-      if (result.session) {
-        if (typeof supabase !== 'undefined' && supabase.auth && supabase.auth.setSession) {
-          await supabase.auth.setSession(result.session);
-        }
-      }
-      console.log('[LOGIN] Dispatching SET_USER:', result.session?.user || result.user);
-      dispatch({ type: 'SET_USER', payload: result.session?.user || result.user });
-      console.log('[LOGIN] After SET_USER dispatch');
-      dispatch({ type: 'SET_SESSION', payload: result.session });
-      console.log('[LOGIN] After SET_SESSION dispatch');
-      dispatch({ type: 'SET_PROFILE', payload: result.user || result.profile });
-      console.log('[LOGIN] After SET_PROFILE dispatch');
+      dispatch({ type: 'SET_LOADING', payload: false });
       dispatch({
         type: 'ADD_NOTIFICATION',
         payload: {
           id: `login-success-${Date.now()}`,
           type: 'success',
           title: 'Login Successful',
-          message: `Welcome back, ${(result.user?.fullname || result.profile?.fullname || 'user')}!`,
+          message: `Welcome back!`,
           timestamp: new Date(),
         },
       });
-      console.log('[LOGIN] After ADD_NOTIFICATION dispatch (success)');
-      console.log('[LOGIN] Login successful:', result);
     } catch (error: any) {
+      dispatch({ type: 'SET_LOADING', payload: false });
       console.error('[LOGIN] Login error (catch):', error);
       dispatch({
         type: 'ADD_NOTIFICATION',
