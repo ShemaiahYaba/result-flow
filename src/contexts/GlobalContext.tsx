@@ -178,7 +178,9 @@ export interface GlobalState {
 export type AuthAction =
   | { type: 'SET_USER'; payload: any | null }
   | { type: 'SET_PROFILE'; payload: UserProfile | null }
+  | { type: 'SET_ROLE'; payload: 'admin' | 'hod' | 'student' | null }
   | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'CLEAR_PROFILE' }
   | { type: 'LOGOUT' };
 
 export type DataAction =
@@ -223,10 +225,35 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         ...state,
         profile: action.payload,
       };
+    case 'SET_ROLE':
+      // Only update the role in profile, not the full profile object
+      if (!state.profile) {
+        return {
+          ...state,
+          profile: {
+            id: '',
+            fullname: '',
+            email: '',
+            role: action.payload || 'student',
+          },
+        };
+      }
+      return {
+        ...state,
+        profile: {
+          ...state.profile,
+          role: action.payload || 'student',
+        },
+      };
     case 'SET_LOADING':
       return {
         ...state,
         isLoading: action.payload,
+      };
+    case 'CLEAR_PROFILE':
+      return {
+        ...state,
+        profile: null,
       };
     case 'LOGOUT':
       return {
@@ -414,8 +441,15 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
 
   // Subscribe to Supabase auth changes
   React.useEffect(() => {
-    const { data: listener } = createClient().auth.onAuthStateChange((_event, session) => {
+    const supabase = createClient();
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+      if (event === 'SIGNED_OUT') {
+        dispatch({ type: 'SET_USER', payload: null });
+        dispatch({ type: 'SET_ROLE', payload: null });
+        dispatch({ type: 'CLEAR_PROFILE' });
+        router.push('/');
+      }
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -427,8 +461,8 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       dispatch({ type: 'SET_USER', payload: data.user });
-      // Fetch user's profile to determine role
-      let userProfile = null;
+      // Fetch user's role and set only the role in state
+      let userRole = null;
       try {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -436,20 +470,21 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
           .eq('id', data.user.id)
           .single();
         if (profileError) throw profileError;
-        userProfile = profileData;
+        userRole = profileData?.role;
+        dispatch({ type: 'SET_ROLE', payload: userRole });
       } catch (profileErr) {
-        throw new Error('Failed to fetch user profile for redirect');
+        throw new Error('Failed to fetch user role for redirect');
       }
       let redirectPath = '/';
-      if (userProfile?.role === 'admin') redirectPath = '/admin';
-      else if (userProfile?.role === 'hod') redirectPath = '/hod';
-      else if (userProfile?.role === 'student') redirectPath = '/student';
+      if (userRole === 'admin') redirectPath = '/admin';
+      else if (userRole === 'hod') redirectPath = '/hod';
+      else if (userRole === 'student') redirectPath = '/student';
       router.push(redirectPath);
       dispatch({ type: 'ADD_NOTIFICATION', payload: {
         id: `login-redirect-${Date.now()}`,
         type: 'success',
         title: 'Redirecting',
-        message: `Taking you to the ${userProfile?.role || 'admin'} dashboard...`,
+        message: `Taking you to the ${userRole || 'admin'} dashboard...`,
         timestamp: new Date(),
       }});
     } catch (error) {
@@ -470,7 +505,9 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
   const supabase = createClient();
   try {
     await supabase.auth.signOut();
-    dispatch({ type: 'LOGOUT' });
+    dispatch({ type: 'SET_USER', payload: null });
+    dispatch({ type: 'SET_ROLE', payload: null });
+    dispatch({ type: 'CLEAR_PROFILE' });
     dispatch({ type: 'CLEAR_DATA' });
     setSession(null);
     dispatch({ type: 'CLEAR_NOTIFICATIONS' });
