@@ -16,7 +16,7 @@ import { useState } from 'react';
 
 import { useGlobalContext } from '@/contexts/GlobalContext';
 
-function LoginForm({ role, cta }: { role: string; cta: string }) {
+function LoginForm({ role, cta, login }: { role: string; cta: string; login: (email: string, password: string, role: 'admin' | 'hod' | 'student') => Promise<void> }) {
   const [idValue, setIdValue] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -43,8 +43,6 @@ function LoginForm({ role, cta }: { role: string; cta: string }) {
       }
       const { email } = await res.json();
       // 2. Login using GlobalContext (handles role-based redirect)
-      // Use global context login method
-      const { login } = useGlobalContext();
       // Map role to correct type
       let typedRole: 'admin' | 'hod' | 'student';
       if (role.toLowerCase() === 'admin') typedRole = 'admin';
@@ -101,15 +99,16 @@ function LoginForm({ role, cta }: { role: string; cta: string }) {
 }
 
 export default function Home() {
+  const { login } = useGlobalContext();
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-            <div className="p-3 mb-4 bg-primary rounded-full shadow-lg">
-                <GraduationCap className="h-8 w-8 text-primary-foreground" />
-            </div>
-            <h1 className="text-4xl font-extrabold font-headline text-primary">ResultFlow</h1>
-            <p className="text-muted-foreground mt-2">Streamlined Result Processing for Universities</p>
+          <div className="p-3 mb-4 bg-primary rounded-full shadow-lg">
+            <GraduationCap className="h-8 w-8 text-primary-foreground" />
+          </div>
+          <h1 className="text-4xl font-extrabold font-headline text-primary">ResultFlow</h1>
+          <p className="text-muted-foreground mt-2">Streamlined Result Processing for Universities</p>
         </div>
 
         <Tabs defaultValue="student" className="w-full">
@@ -126,7 +125,7 @@ export default function Home() {
                   Access your results, track your CGPA, and more.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="Student" cta="Login as Student" />
+              <LoginForm role="Student" cta="Login as Student" login={login} />
             </Card>
           </TabsContent>
           <TabsContent value="hod">
@@ -137,7 +136,7 @@ export default function Home() {
                   Manage departmental results and student registries.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="HOD" cta="Login as HOD" />
+              <LoginForm role="HOD" cta="Login as HOD" login={login} />
             </Card>
           </TabsContent>
           <TabsContent value="admin">
@@ -148,13 +147,13 @@ export default function Home() {
                   Manage university settings, policies, and approvals.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="Admin" cta="Login as Admin" />
+              <LoginForm role="Admin" cta="Login as Admin" login={login} />
             </Card>
           </TabsContent>
         </Tabs>
 
         <p className="mt-8 text-center text-sm text-muted-foreground">
-            © {new Date().getFullYear()} ResultFlow. All rights reserved.
+          {new Date().getFullYear()} ResultFlow. All rights reserved.
         </p>
       </div>
     </div>

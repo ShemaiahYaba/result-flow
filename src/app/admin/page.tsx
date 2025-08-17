@@ -2,10 +2,11 @@
 
 import { useGlobalContext } from '@/contexts/GlobalContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Book, CheckSquare } from "lucide-react";
+import { Users, Book, CheckSquare, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function AdminPage() {
-  const { state } = useGlobalContext();
+  const { state, logout } = useGlobalContext();
   // Only allow admins
   if (!state.auth.user || state.auth.profile?.role !== 'admin') {
     if (typeof window !== 'undefined') {
@@ -25,9 +26,14 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Welcome! Here's an overview of your university's status.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Welcome! Here's an overview of your university's status.</p>
+        </div>
+        <Button variant="outline" onClick={logout} className="flex items-center gap-2">
+          <LogOut className="w-4 h-4" /> Logout
+        </Button>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
