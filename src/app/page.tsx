@@ -1,7 +1,7 @@
 "use client";
 
 import { GraduationCap } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useAuth } from '@/providers/AuthProvider';
 import {
   Card,
   CardContent,
@@ -13,8 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from 'react';
-
-import { useGlobalContext } from '@/contexts/GlobalContext';
+import { Button } from "@/components/ui/button";
 
 function LoginForm({ role, cta, login }: { role: string; cta: string; login: (email: string, password: string) => Promise<void> }) {
   const [idValue, setIdValue] = useState('');
@@ -95,7 +94,7 @@ function LoginForm({ role, cta, login }: { role: string; cta: string; login: (em
 }
 
 export default function Home() {
-  const { login } = useGlobalContext();
+  const { login } = useAuth();
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-md">

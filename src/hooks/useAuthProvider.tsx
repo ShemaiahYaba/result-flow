@@ -312,26 +312,24 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
     setIsLoading(true);
     setStatus('loading');
     setError(null);
+    const router = { push: (path: string) => window.location.assign(path) };
     try {
-      const { data, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-      if (loginError) throw loginError;
-      setSession(data.session);
-      setUser(data.user);
+      // Use business helper
+      await import('../lib/businessHelpers').then(({ loginHelper }) =>
+        loginHelper(email, password, dispatch, router)
+      );
+      // After login, refresh session/profile
+      await refreshSession();
+      await fetchProfile(true);
       setStatus('authenticated');
       setIsSessionInitialized(true);
-      addNotification({
-        type: 'success',
-        title: 'Login successful',
-        message: `Welcome back, ${data.user?.email}!`,
-      });
-      await fetchProfile(true);
     } catch (err) {
       setAppError(err, { phase: 'login' });
       setStatus('unauthenticated');
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, setAppError, addNotification, fetchProfile]);
+  }, [dispatch, refreshSession, fetchProfile, setAppError]);
 
   // Signup
   const signup = useCallback(async (profileData: CreateProfileInput & { password: string }) => {
@@ -370,31 +368,25 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
     setIsLoading(true);
     setStatus('loading');
     setError(null);
+    const router = { push: (path: string) => window.location.assign(path) };
     try {
-      const currentUserId = user?.id;
-      const { error: logoutError } = await supabase.auth.signOut();
-      if (logoutError) throw logoutError;
-      
-      // Clear all state and cache
+      // Use business helper
+      await import('../lib/businessHelpers').then(({ logoutHelper }) =>
+        logoutHelper(dispatch, setSession, router)
+      );
       setSession(null);
       setUser(null);
       setProfile(null);
       setRoles([]);
       profileCacheRef.current = null;
-      clearProfileCache(currentUserId);
+      clearProfileCache(user?.id);
       setStatus('unauthenticated');
-      
-      addNotification({
-        type: 'success',
-        title: 'Logged out',
-        message: 'You have been signed out.',
-      });
     } catch (err) {
       setAppError(err, { phase: 'logout' });
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, setAppError, addNotification, user?.id, clearProfileCache]);
+  }, [dispatch, setSession, setUser, setProfile, setRoles, clearProfileCache, user?.id, setAppError]);
 
   // Role/permission helpers
   const hasRole = useCallback((role: 'admin' | 'hod' | 'student') => {
