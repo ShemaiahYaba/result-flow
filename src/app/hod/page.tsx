@@ -12,10 +12,12 @@ import { useGlobalContext } from '@/contexts/GlobalContext';
 
 export default function HodDashboardPage() {
   const { state } = useGlobalContext();
-  // Only allow HODs
+  // Wait for loading to finish before checking auth
+  if (state.auth.isLoading) {
+    return <div>Loading...</div>;
+  }
   if (!state.auth.user || state.auth.profile?.role !== 'hod') {
     if (typeof window !== 'undefined') {
-      // Always redirect unauthorized access to a generic unauthorized page
       window.location.href = '/unauthorized';
     }
     return <div>Unauthorized. Redirecting...</div>;

@@ -31,10 +31,12 @@ import { useGlobalContext } from '@/contexts/GlobalContext';
 
 export default function StudentDashboardPage() {
   const { state } = useGlobalContext();
-  // Only allow students
+  // Wait for loading to finish before checking auth
+  if (state.auth.isLoading) {
+    return <div>Loading...</div>;
+  }
   if (!state.auth.user || state.auth.profile?.role !== 'student') {
     if (typeof window !== 'undefined') {
-      // Always redirect unauthorized access to a generic unauthorized page
       window.location.href = '/unauthorized';
     }
     return <div>Unauthorized. Redirecting...</div>;

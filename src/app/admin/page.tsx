@@ -5,17 +5,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Book, CheckSquare, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function AdminPage() {
-  const { state, logout } = useGlobalContext();
-  // Only allow admins
-  if (!state.auth.user || state.auth.profile?.role !== 'admin') {
-    if (typeof window !== 'undefined') {
-      // Always redirect unauthorized access to a generic unauthorized page
-      window.location.href = '/unauthorized';
-    }
-    return <div>Unauthorized. Redirecting...</div>;
-  }
+import { GlobalProvider } from '@/contexts/GlobalContext';
 
+export default function AdminDashboardPage() {
+    const { state } = useGlobalContext();
+    // Wait for loading to finish before checking auth
+    if (state.auth.isLoading) {
+      return <div>Loading...</div>;
+    }
+    if (!state.auth.user || state.auth.profile?.role !== 'admin') {
+      if (typeof window !== 'undefined') {
+        window.location.href = '/unauthorized';
+      }
+      return <div>Unauthorized. Redirecting...</div>;
+    }
+    return (
+      <GlobalProvider>
+        <AdminDashboard />
+      </GlobalProvider>
+    );
+  }
   // Example stats, replace with real data as needed
   const stats = {
     totalHods: 3,
@@ -24,7 +33,9 @@ export default function AdminPage() {
     pendingApprovals: 2,
   };
 
-  return (
+  function AdminDashboard() {
+    const { logout } = useGlobalContext();
+    return (      
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -78,6 +89,6 @@ export default function AdminPage() {
         </Card>
       </div>
     </div>
-  );
+    );
 }
 
