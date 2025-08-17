@@ -366,7 +366,7 @@ interface GlobalContextType {
   session: Session | null;
   setSession: React.Dispatch<React.SetStateAction<Session | null>>;
   // Auth helpers
-  login: (email: string, password: string, role: 'student' | 'hod' | 'admin') => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
   // Data helpers
@@ -420,7 +420,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string, _role: 'student' | 'hod' | 'admin') => {
+  const login = async (email: string, password: string) => {
     const supabase = createClient();
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -465,37 +465,52 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
     }
   };
 
+  // Update profile implementation (stub, must be implemented as needed)
   const logout = async () => {
+  const supabase = createClient();
+  try {
+    await supabase.auth.signOut();
+    dispatch({ type: 'LOGOUT' });
+    dispatch({ type: 'CLEAR_DATA' });
+    setSession(null);
+    dispatch({ type: 'CLEAR_NOTIFICATIONS' });
+    router.push('/');
+    if (typeof window !== 'undefined') {
+      setTimeout(() => window.location.reload(), 50);
+    }
+    dispatch({
+      type: 'ADD_NOTIFICATION',
+      payload: {
+        id: `logout-success-${Date.now()}`,
+        type: 'info',
+        title: 'Logged Out',
+        message: 'You have been logged out.',
+        timestamp: new Date(),
+      },
+    });
+  } catch (error) {
+    dispatch({ type: 'ADD_NOTIFICATION', payload: {
+      id: `logout-error-${Date.now()}`,
+      type: 'error',
+      title: 'Logout Failed',
+      message: (error && typeof error === 'object' && 'message' in error) ? (error as any).message : 'Logout failed',
+      timestamp: new Date(),
+    }});
+  }
+};
+
+const updateProfile = async (profile: Partial<UserProfile>) => {
     const supabase = createClient();
     try {
-      await supabase.auth.signOut();
-      dispatch({ type: 'LOGOUT' });
-      dispatch({ type: 'CLEAR_DATA' });
-      router.push('/login');
-      dispatch({
-        type: 'ADD_NOTIFICATION',
-        payload: {
-          id: `logout-success-${Date.now()}`,
-          type: 'info',
-          title: 'Logged Out',
-          message: 'You have been logged out.',
-          timestamp: new Date(),
-        },
-      });
-    } catch (error) {
-      dispatch({ type: 'ADD_NOTIFICATION', payload: {
-        id: `logout-error-${Date.now()}`,
-        type: 'error',
-        title: 'Logout Failed',
-        message: (error && typeof error === 'object' && 'message' in error) ? (error as any).message : 'Logout failed',
-        timestamp: new Date(),
-      }});
-    }
-  };
-
-  const updateProfile = async (profileUpdates: Partial<UserProfile>) => {
-    try {
-      const updatedProfile = { ...state.auth.profile, ...profileUpdates } as UserProfile;
+      // Example: update profile in Supabase
+      // await supabase.from('profiles').update(profile).eq('id', state.auth.user?.id);
+      const currentProfile = state.auth.profile || { id: '', fullname: '', email: '', role: 'student' };
+      const updatedProfile: UserProfile = {
+        id: profile.id ?? currentProfile.id,
+        fullname: profile.fullname ?? currentProfile.fullname,
+        email: profile.email ?? currentProfile.email,
+        role: profile.role ?? currentProfile.role,
+      };
       dispatch({ type: 'SET_PROFILE', payload: updatedProfile });
       dispatch({
         type: 'ADD_NOTIFICATION',
@@ -508,10 +523,17 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
         },
       });
     } catch (error) {
-      console.error('Profile update error:', error);
+      dispatch({ type: 'ADD_NOTIFICATION', payload: {
+        id: `profile-update-error-${Date.now()}`,
+        type: 'error',
+        title: 'Profile Update Failed',
+        message: (error && typeof error === 'object' && 'message' in error) ? (error as any).message : 'Profile update failed',
+        timestamp: new Date(),
+      }});
       throw error;
     }
   };
+
 
   const fetchDepartments = async () => {
     try {
@@ -892,11 +914,9 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
     dispatch,
     session,
     setSession,
-    // Auth helpers
     login,
-    logout,
-    updateProfile,
-    // Data helpers
+    logout, // Ensure logout is provided
+    updateProfile, // Ensure updateProfile is provided
     fetchDepartments,
     fetchAcademicSessions,
     fetchCourses,
@@ -906,7 +926,6 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
     fetchGradingPolicies,
     fetchMarksheetColumns,
     fetchSystemSettings,
-    // UI helpers
     addNotification,
     removeNotification,
     clearNotifications,
@@ -914,7 +933,6 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
     setCurrentPage,
     setTheme,
     setLanguage,
-    // Utility helpers
     isAdmin,
     isHOD,
     isStudent,
@@ -928,7 +946,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
   );
 };
 
-// ============================================================
+// ...
 // HOOK
 // ============================================================
 

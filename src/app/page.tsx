@@ -16,7 +16,7 @@ import { useState } from 'react';
 
 import { useGlobalContext } from '@/contexts/GlobalContext';
 
-function LoginForm({ role, cta, login }: { role: string; cta: string; login: (email: string, password: string, role: 'admin' | 'hod' | 'student') => Promise<void> }) {
+function LoginForm({ role, cta, login }: { role: string; cta: string; login: (email: string, password: string) => Promise<void> }) {
   const [idValue, setIdValue] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -43,12 +43,8 @@ function LoginForm({ role, cta, login }: { role: string; cta: string; login: (em
       }
       const { email } = await res.json();
       // 2. Login using GlobalContext (handles role-based redirect)
-      // Map role to correct type
-      let typedRole: 'admin' | 'hod' | 'student';
-      if (role.toLowerCase() === 'admin') typedRole = 'admin';
-      else if (role.toLowerCase() === 'hod') typedRole = 'hod';
-      else typedRole = 'student';
-      await login(email, password, typedRole);
+      // Pass role directly to login
+      await login(email, password);
       // No manual push; GlobalContext handles redirect
     } catch (err: any) {
       setError(err.message || 'Login failed');
@@ -125,7 +121,7 @@ export default function Home() {
                   Access your results, track your CGPA, and more.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="Student" cta="Login as Student" login={login} />
+              <LoginForm role="Student" cta="Login as Student" login={(email, password) => login(email, password)} />
             </Card>
           </TabsContent>
           <TabsContent value="hod">
@@ -136,7 +132,7 @@ export default function Home() {
                   Manage departmental results and student registries.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="HOD" cta="Login as HOD" login={login} />
+              <LoginForm role="HOD" cta="Login as HOD" login={(email, password) => login(email, password)} />
             </Card>
           </TabsContent>
           <TabsContent value="admin">
@@ -147,7 +143,7 @@ export default function Home() {
                   Manage university settings, policies, and approvals.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="Admin" cta="Login as Admin" login={login} />
+              <LoginForm role="Admin" cta="Login as Admin" login={(email, password) => login(email, password)} />
             </Card>
           </TabsContent>
         </Tabs>
