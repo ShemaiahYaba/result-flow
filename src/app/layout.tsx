@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { GlobalProvider } from "../contexts/GlobalContext";
+import { AuthProvider } from "../providers/AuthProvider";
+import { QueryProvider } from "../providers/QueryProvider";
 import { ErrorBoundary } from "../utils/ErrorHandlerExample";
 import NotificationSystem from "../components/ui/NotificationSystem";
 
@@ -19,10 +21,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={inter.className}>
         <ErrorBoundary>
-          <GlobalProvider>
-            {children}
-            <NotificationSystem />
-          </GlobalProvider>
+          <QueryProvider>
+            <GlobalProvider>
+              <AuthProvider>
+                {children}
+                <NotificationSystem />
+              </AuthProvider>
+            </GlobalProvider>
+          </QueryProvider>
         </ErrorBoundary>
       </body>
     </html>

@@ -95,15 +95,18 @@ export const createProfileSchema = z.discriminatedUnion("role", [
   createHodStaffProfileSchema,
 ]);
 
-// Profile update schemas (all fields optional except ID)
+// Profile update schemas (all fields optional except ID and role)
 const updateStudentProfileSchema = createStudentProfileSchema.partial().extend({
   id: z.string().uuid("Invalid profile ID"),
+  role: z.literal("student"), // Keep role required for discriminated union
 }).strict();
 const updateAdminStaffProfileSchema = createAdminStaffProfileSchema.partial().extend({
   id: z.string().uuid("Invalid profile ID"),
+  role: z.literal("admin"), // Keep role required for discriminated union
 }).strict();
 const updateHodStaffProfileSchema = createHodStaffProfileSchema.partial().extend({
   id: z.string().uuid("Invalid profile ID"),
+  role: z.literal("hod"), // Keep role required for discriminated union
 }).strict();
 export const updateProfileSchema = z.discriminatedUnion("role", [
   updateStudentProfileSchema,
