@@ -1,16 +1,8 @@
 'use client';
 
-import { useGlobalContext, GlobalProvider } from '@/contexts/GlobalContext';
-import AdminDashboard, { DashboardStats } from './AdminDashboard';
-import React from 'react';
-
-// Example: you can fetch stats client-side or pass them via props if hydrated from SSR
-const mockStats: DashboardStats = {
-  totalHods: 3,
-  departments: 5,
-  courses: 20,
-  pendingApprovals: 2,
-};
+import { useGlobalContext } from '@/contexts/GlobalContext';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, Book, CheckSquare } from "lucide-react";
 
 export default function AdminPage() {
   const { state } = useGlobalContext();
@@ -22,10 +14,64 @@ export default function AdminPage() {
     }
     return <div>Unauthorized. Redirecting...</div>;
   }
+
+  // Example stats, replace with real data as needed
+  const stats = {
+    totalHods: 3,
+    departments: 5,
+    courses: 20,
+    pendingApprovals: 2,
+  };
+
   return (
-    <GlobalProvider>
-      <AdminDashboard stats={mockStats} />
-    </GlobalProvider>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
+        <p className="text-muted-foreground">Welcome! Here's an overview of your university's status.</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total HODs</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalHods}</div>
+            <p className="text-xs text-muted-foreground">Heads of Department</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Departments</CardTitle>
+            <Book className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.departments}</div>
+            <p className="text-xs text-muted-foreground">Academic departments</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Courses</CardTitle>
+            <Book className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.courses}</div>
+            <p className="text-xs text-muted-foreground">Courses offered</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+            <CheckSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.pendingApprovals}</div>
+            <p className="text-xs text-muted-foreground">Departmental results waiting</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
 
