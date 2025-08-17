@@ -440,8 +440,9 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
       } catch (profileErr) {
         throw new Error('Failed to fetch user profile for redirect');
       }
-      let redirectPath = '/admin';
-      if (userProfile?.role === 'hod') redirectPath = '/hod';
+      let redirectPath = '/';
+      if (userProfile?.role === 'admin') redirectPath = '/admin';
+      else if (userProfile?.role === 'hod') redirectPath = '/hod';
       else if (userProfile?.role === 'student') redirectPath = '/student';
       router.push(redirectPath);
       dispatch({ type: 'ADD_NOTIFICATION', payload: {
