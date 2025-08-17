@@ -428,25 +428,50 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
     setIsLoading(true);
     setStatus('loading');
     setError(null);
-    const router = { push: (path: string) => window.location.assign(path) };
+    
     try {
-      // Use business helper
-      await import('../lib/businessHelpers').then(({ logoutHelper }) =>
-        logoutHelper(dispatch, setSession, router)
-      );
+      // Clear profile cache first
+      if (user?.id) {
+        clearProfileCache(user.id);
+      }
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Clear all auth state
       setSession(null);
       setUser(null);
       setProfile(null);
       setRoles([]);
       profileCacheRef.current = null;
-      clearProfileCache(user?.id);
       setStatus('unauthenticated');
+      setIsSessionInitialized(false);
+      
+      // Clear query cache
+      queryClient.clear();
+      
+      // Navigate to home page
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+      
     } catch (err) {
+      console.error('Logout error:', err);
       setAppError(err, { phase: 'logout' });
+      // Even if logout fails, clear local state and redirect
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setRoles([]);
+      setStatus('unauthenticated');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [dispatch, setSession, setUser, setProfile, setRoles, clearProfileCache, user?.id, setAppError]);
+  }, [supabase, user?.id, clearProfileCache, queryClient, setAppError]);
 
   // Role/permission helpers
   const hasRole = useCallback((role: 'admin' | 'hod' | 'student') => {
