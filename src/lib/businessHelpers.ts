@@ -1,35 +1,18 @@
 import { supabaseClient } from '../utils/supabase/client';
 import type { UserProfile } from '../contexts/GlobalContext';
 
-export async function loginHelper(email: string, password: string, dispatch: any, router: any) {
+export async function loginHelper(email: string, password: string, dispatch: any, router: any, dashboardRoute: string, roleLabel: string) {
   try {
     dispatch({ type: 'SET_LOADING', payload: true });
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) throw error;
     dispatch({ type: 'SET_USER', payload: data.user });
-    let userRole = null;
-    try {
-      const { data: profileData, error: profileError } = await supabaseClient
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-      if (profileError) throw profileError;
-      userRole = profileData?.role;
-      dispatch({ type: 'SET_ROLE', payload: userRole });
-    } catch (profileErr) {
-      throw new Error('Failed to fetch user role for redirect');
-    }
-    let redirectPath = '/';
-    if (userRole === 'admin') redirectPath = '/admin';
-    else if (userRole === 'hod') redirectPath = '/hod';
-    else if (userRole === 'student') redirectPath = '/student';
-    router.push(redirectPath);
+    router.push(dashboardRoute);
     dispatch({ type: 'ADD_NOTIFICATION', payload: {
       id: `login-redirect-${Date.now()}`,
       type: 'success',
       title: 'Redirecting',
-      message: `Taking you to the ${userRole || 'admin'} dashboard...`,
+      message: `Taking you to the ${roleLabel} dashboard...`,
       timestamp: new Date(),
     }});
   } catch (error) {

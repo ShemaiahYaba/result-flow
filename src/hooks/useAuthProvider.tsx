@@ -32,6 +32,8 @@ export interface AuthProviderAPI {
   status: AuthStatus;
   error: AppError | null;
   roles: ('admin' | 'hod' | 'student')[];
+  role: string; // guaranteed role property from lookup API
+  setRoleFromAPI: (role: string) => void; // Set role from lookup API
   login: (email: string, password: string) => Promise<void>;
   signup: (profileData: CreateProfileInput & { password: string }) => Promise<void>;
   logout: () => Promise<void>;
@@ -55,6 +57,8 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
       status: 'checking',
       error: null,
       roles: [],
+      role: 'guest',
+      setRoleFromAPI: () => {},
       login: async () => {},
       signup: async () => {},
       logout: async () => {},
@@ -74,6 +78,7 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
   const [user, setUser] = useState<User | null>(initialUser || null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<any | null>(initialRole ? { role: initialRole } : null); // Use UserProfile type if available
+  const [roleFromAPI, setRoleFromAPI] = useState<string>(initialRole || ''); // Role from lookup API
   const [isSessionInitialized, setIsSessionInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<AuthStatus>('idle');
@@ -174,6 +179,44 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
       console.warn('Failed to clear profile cache:', error);
     }
   }, []);
+
+  // Helper: Clear corrupted auth data
+  const clearCorruptedAuthData = useCallback(async () => {
+    try {
+      // Clear all Supabase auth storage
+      await supabase.auth.signOut({ scope: 'local' });
+      
+      // Clear localStorage auth data
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('supabase.auth.token') || 
+            key.startsWith('sb-') ||
+            key.startsWith('profile_cache_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Clear sessionStorage auth data
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('supabase.auth.token') || 
+            key.startsWith('sb-')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+      
+      // Reset all auth state
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setRoles([]);
+      setStatus('unauthenticated');
+      setIsSessionInitialized(false);
+      profileCacheRef.current = null;
+      retryCountRef.current = 0;
+      
+    } catch (error) {
+      console.warn('Error clearing corrupted auth data:', error);
+    }
+  }, [supabase]);
 
   // Helper: Fetch profile using session data directly (for auth state changes)
   const fetchProfileWithSessionData = useCallback(async (sessionData: Session, force = false) => {
@@ -359,13 +402,16 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
   const retryAuth = useCallback(async () => {
     try {
       await refreshSession();
-      if (user && session) {
-        await fetchProfile(true);
-      }
     } catch (err) {
       console.error('Auth retry failed:', err);
     }
-  }, [refreshSession, fetchProfile, user, session]);
+  }, [refreshSession]);
+
+  // Set role from lookup API
+  const setRoleFromAPIMethod = useCallback((role: string) => {
+    setRoleFromAPI(role);
+    setRoles(role ? [role as 'admin' | 'hod' | 'student'] : []);
+  }, []);
 
   // Login
   const login = useCallback(async (email: string, password: string) => {
@@ -378,9 +424,8 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
         password,
       });
       if (error) throw error;
-      // After login, refresh session/profile
+      // After login, only refresh session
       await refreshSession();
-      await fetchProfile(true);
       setStatus('authenticated');
       setIsSessionInitialized(true);
     } catch (err) {
@@ -389,7 +434,7 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, refreshSession, fetchProfile, setAppError]);
+  }, [supabase, refreshSession, setAppError]);
 
   // Signup
   const signup = useCallback(async (profileData: CreateProfileInput & { password: string }) => {
@@ -414,17 +459,17 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
         title: 'Signup successful',
         message: `Welcome! Please complete your profile.`,
       });
-      await fetchProfile(true);
     } catch (err) {
       setAppError(err, { phase: 'signup' });
       setStatus('unauthenticated');
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, setAppError, addNotification, fetchProfile]);
+  }, [supabase, setAppError, addNotification]);
 
   // Logout
   const logout = useCallback(async () => {
+    console.log('🚪 Logout initiated');
     setIsLoading(true);
     setStatus('loading');
     setError(null);
@@ -432,18 +477,25 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
     try {
       // Clear profile cache first
       if (user?.id) {
+        console.log('🗑️ Clearing profile cache for user:', user.id);
         clearProfileCache(user.id);
       }
       
       // Sign out from Supabase
+      console.log('🔐 Signing out from Supabase...');
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase signOut error:', error);
+        throw error;
+      }
+      console.log('✅ Supabase signOut successful');
       
       // Clear all auth state
       setSession(null);
       setUser(null);
       setProfile(null);
       setRoles([]);
+      setRoleFromAPI('');
       profileCacheRef.current = null;
       setStatus('unauthenticated');
       setIsSessionInitialized(false);
@@ -451,71 +503,83 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
       // Clear query cache
       queryClient.clear();
       
+      console.log('🏠 Redirecting to home page...');
       // Navigate to home page
       if (typeof window !== 'undefined') {
         window.location.href = '/';
       }
       
     } catch (err) {
-      console.error('Logout error:', err);
+      console.error('❌ Logout error:', err);
       setAppError(err, { phase: 'logout' });
       // Even if logout fails, clear local state and redirect
       setSession(null);
       setUser(null);
       setProfile(null);
       setRoles([]);
+      setRoleFromAPI('');
       setStatus('unauthenticated');
       if (typeof window !== 'undefined') {
         window.location.href = '/';
       }
     } finally {
       setIsLoading(false);
+      console.log('🚪 Logout process completed');
     }
   }, [supabase, user?.id, clearProfileCache, queryClient, setAppError]);
 
   // Role/permission helpers
   const hasRole = useCallback((role: 'admin' | 'hod' | 'student') => {
-    return roles.includes(role);
-  }, [roles]);
+    return roleFromAPI === role;
+  }, [roleFromAPI]);
 
   const hasPermission = useCallback((permission: string) => {
-    const role = profile?.role;
-    if (!role) return false;
+    if (!roleFromAPI) return false;
     const permissions: Record<'admin' | 'hod' | 'student', string[]> = {
       admin: ['read', 'write', 'delete', 'approve', 'manage_users', 'manage_departments'],
       hod: ['read', 'write', 'approve', 'manage_students', 'manage_courses'],
       student: ['read'],
     };
-    return permissions[role as 'admin' | 'hod' | 'student']?.includes(permission) || false;
-  }, [profile]);
+    return permissions[roleFromAPI as 'admin' | 'hod' | 'student']?.includes(permission) || false;
+  }, [roleFromAPI]);
 
   // Initialize session with only client-side logic (no SSR)
   const initializeSession = useCallback(async () => {
-    if (isInitializingRef.current) return; // Prevent multiple initializations
+    if (isInitializingRef.current) return;
     isInitializingRef.current = true;
+    
     try {
       setStatus('checking');
       setIsLoading(true);
-      // Step 1: Try localStorage session restore (optional, can be expanded)
-      // (Example: you could implement logic to restore session from localStorage if you store it there)
-      // For now, skip and go straight to session refresh
-      // Step 2: Fallback to fresh session check
-      console.log('Performing fresh session check');
-      await refreshSession();
-      // If we have a user after session refresh, try to fetch profile
+      
+      // Check for corrupted auth data first
       const currentSession = await supabase.auth.getSession();
-      if (currentSession.data.session?.user) {
-        await fetchProfile();
+      if (currentSession.error) {
+        if (currentSession.error.message.includes('Invalid Refresh Token') || 
+            currentSession.error.message.includes('Refresh Token Not Found')) {
+          await clearCorruptedAuthData();
+          return;
+        }
+        throw currentSession.error;
       }
-    } catch (err) {
+      
+      // Try to refresh session
+      await refreshSession();
+    } catch (err: any) {
       console.error('Session initialization failed:', err);
-      setStatus('unauthenticated');
+      
+      if (err?.message?.includes('Invalid Refresh Token') || 
+          err?.message?.includes('Refresh Token Not Found')) {
+        await clearCorruptedAuthData();
+      } else {
+        setStatus('unauthenticated');
+      }
     } finally {
       setIsSessionInitialized(true);
       setIsLoading(false);
       isInitializingRef.current = false;
     }
-  }, [refreshSession, fetchProfile, supabase]);
+  }, [supabase, refreshSession, clearCorruptedAuthData]);
 
   // Listen for Supabase auth state changes (auto-refresh, session sync)
   useEffect(() => {
@@ -531,22 +595,13 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
           profileCacheRef.current = null;
         }
         
-        // Fetch profile for new user - use session data directly since state hasn't updated yet
-        if (session?.user?.id && session.user.id !== user?.id) {
-          try {
-            // Call fetchProfile with session data directly
-            await fetchProfileWithSessionData(session, true);
-          } catch (error) {
-            console.error('Profile fetch failed:', error);
-          }
-        }
-        
         setStatus(session?.user ? 'authenticated' : 'unauthenticated');
         
       } else if (event === 'SIGNED_OUT') {
         setSession(null);
         setUser(null);
         setProfile(null);
+        setRoleFromAPI('');
         setStatus('unauthenticated');
         clearProfileCache(user?.id);
         profileCacheRef.current = null;
@@ -576,12 +631,14 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
     user,
     session,
     profile,
-    isAuthenticated: !!user && !!session, // Don't require profile for authentication
+    isAuthenticated: !!user && !!session && !!roleFromAPI, // Require session and role from API
     isSessionInitialized,
     isLoading,
     status,
     error,
     roles,
+    role: roleFromAPI || (user && session ? '' : 'guest'),
+    setRoleFromAPI: setRoleFromAPIMethod,
     login,
     signup,
     logout,

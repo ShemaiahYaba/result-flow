@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     // Query profiles table
     const { data, error } = await supabase
       .from('profiles')
-      .select('email')
+      .select('email, role')
       .eq(idType, idValue)
       .maybeSingle();
     
@@ -103,10 +103,10 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
     
-    console.log('✅ Profile found, email:', data.email);
+    console.log('✅ Profile found, email:', data.email, 'role:', data.role);
     console.log('=== /api/lookup-email success ===');
     
-    return NextResponse.json({ email: data.email });
+    return NextResponse.json({ email: data.email, role: data.role });
     
   } catch (parseError: any) {
     console.error('❌ Request parsing error:', parseError);

@@ -1,149 +1,22 @@
 "use client"
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Download, LogOut } from "lucide-react";
+import { withAuth } from '@/providers/AuthProvider';
+import { useStudentDashboard } from '@/hooks/useStudentDashboard';
+import { StudentDashboardUI } from '@/components/dashboard/StudentDashboardUI';
 
 export const dynamic = 'force-dynamic';
 
-const currentResults = [
-    { code: 'CSC 411', title: 'Compiler Construction', units: 3, grade: 'A', score: 85 },
-    { code: 'CSC 421', title: 'Artificial Intelligence', units: 3, grade: 'A', score: 92 },
-    { code: 'CSC 431', title: 'Computer Networks', units: 3, grade: 'B', score: 68 },
-    { code: 'CSC 499', title: 'Project', units: 6, grade: 'A', score: 78 },
-];
-
-import { useAuth } from '@/providers/AuthProvider';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-
-export default function StudentDashboardPage() {
-  const { user, role, loading, isAuthenticated, logout } = useAuth();
-  const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
-
-  // Ensure we're on the client side before doing any redirects
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isClient) return; // Don't redirect during SSR
-    
-    // Only redirect if not authenticated
-    if (!loading && !isAuthenticated) {
-      router.push('/');
-    }
-  }, [isClient, loading, isAuthenticated, router, user]);
-
-  // Show consistent loading state during SSR and initial client hydration
-  if (loading || !isClient) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div>Redirecting to login...</div>
-      </div>
-    );
-  }
-
-  return <StudentDashboard />;
-}
-
-function StudentDashboard() {
-  const { logout } = useAuth();
+function StudentDashboardPage() {
+  const { stats, loading, logout, downloadTranscript } = useStudentDashboard();
   
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold font-headline">Student Dashboard</h1>
-          <p className="text-muted-foreground">Welcome! Here's an overview of your academic progress.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" /> Download Transcript
-          </Button>
-          <Button variant="outline" onClick={logout} className="flex items-center gap-2">
-            <LogOut className="w-4 h-4" /> Logout
-          </Button>
-        </div>
-      </div>
-
-        <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Current Semester Results</CardTitle>
-                        <CardDescription>2023/2024 - 1st Semester</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Course Code</TableHead>
-                                    <TableHead>Course Title</TableHead>
-                                    <TableHead>Units</TableHead>
-                                    <TableHead>Score</TableHead>
-                                    <TableHead className="text-right">Grade</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {currentResults.map((result) => (
-                                    <TableRow key={result.code}>
-                                        <TableCell className="font-mono">{result.code}</TableCell>
-                                        <TableCell className="font-medium">{result.title}</TableCell>
-                                        <TableCell>{result.units}</TableCell>
-                                        <TableCell>{result.score}</TableCell>
-                                        <TableCell className="text-right font-bold text-primary">{result.grade}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="space-y-6">
-                <Card className="bg-primary text-primary-foreground">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Cumulative GPA (CGPA)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-6xl font-bold">4.75</p>
-                        <p className="text-sm opacity-80">Out of 5.00</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Semester GPA (GPA)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-5xl font-bold text-primary">4.88</p>
-                        <p className="text-xs text-muted-foreground">2023/2024 - 1st Semester</p>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
-    </div>
+    <StudentDashboardUI 
+      stats={stats} 
+      loading={loading} 
+      onLogout={logout} 
+      onDownloadTranscript={downloadTranscript}
+    />
   );
 }
+
+export default withAuth(StudentDashboardPage, ['student']);
 

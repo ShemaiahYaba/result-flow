@@ -108,10 +108,10 @@ export function withAuth<P extends object>(
   requiredRoles?: ('admin' | 'hod' | 'student')[]
 ) {
   return function AuthenticatedComponent(props: P) {
-    const { isAuthenticated, isSessionInitialized, hasRole, status } = useAuth();
+    const { isAuthenticated, isSessionInitialized, hasRole, status, role, logout } = useAuth();
 
-    // Show loading while checking session
-    if (!isSessionInitialized || status === 'checking') {
+    // Show loading while checking session or waiting for role
+    if (!isSessionInitialized || status === 'checking' || status === 'loading') {
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -127,36 +127,37 @@ export function withAuth<P extends object>(
             <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
             <p className="text-gray-600 mb-4">Please log in to access this page.</p>
             <button 
-              onClick={() => window.location.href = '/login'}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              onClick={() => window.location.href = '/'}
+              className="bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium"
             >
-              Go to Login
+              Go to Home
             </button>
           </div>
         </div>
       );
     }
 
-    // Check role-based access if roles are specified
-    if (requiredRoles && requiredRoles.length > 0) {
-      const hasRequiredRole = requiredRoles.some(role => hasRole(role));
-      if (!hasRequiredRole) {
-        return (
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-              <p className="text-gray-600 mb-4">
-                You don't have permission to access this page.
-              </p>
-              <p className="text-sm text-gray-500">
-                Required roles: {requiredRoles.join(', ')}
-              </p>
-            </div>
+    
+    // Enforce role-based access using requiredRoles argument
+    if (requiredRoles && requiredRoles.length > 0 && role && !requiredRoles.includes(role as 'student' | 'admin' | 'hod')) {
+      setTimeout(() => {
+        logout();
+      }, 100);
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4 text-red-600">Unauthorized</h2>
+            <p className="text-gray-600 mb-4">You do not have permission to access this page. You have been logged out.</p>
+            <button
+              onClick={() => window.location.href = '/'}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Go to Home
+            </button>
           </div>
-        );
-      }
+        </div>
+      );
     }
-
     return <Component {...props} />;
   };
 }

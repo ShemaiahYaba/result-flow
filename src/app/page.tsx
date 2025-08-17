@@ -2,6 +2,8 @@
 
 import { GraduationCap } from "lucide-react";
 import { useAuth } from '@/providers/AuthProvider';
+import { loginHelper } from '../lib/businessHelpers';
+import { useReducer } from 'react';
 import {
   Card,
   CardContent,
@@ -15,7 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 
-function LoginForm({ role, cta, login }: { role: string; cta: string; login: (email: string, password: string) => Promise<void> }) {
+import { useRouter } from 'next/navigation';
+
+function LoginForm({ role, cta, login, dashboardRoute, dispatch, router, setRoleFromAPI }: { role: string; cta: string; login: (email: string, password: string) => Promise<void>; dashboardRoute: string; dispatch: any; router: any; setRoleFromAPI: (role: string) => void }) {
   const [idValue, setIdValue] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -40,11 +44,22 @@ function LoginForm({ role, cta, login }: { role: string; cta: string; login: (em
         const data = await res.json();
         throw new Error(data.error || 'Lookup failed');
       }
-      const { email } = await res.json();
-      // 2. Login using GlobalContext (handles role-based redirect)
-      // Pass role directly to login
+      const { email, role: returnedRole } = await res.json();
+      // Check if returnedRole matches the login tab's role
+      if (
+        (role === 'Student' && returnedRole !== 'student') ||
+        (role === 'HOD' && returnedRole !== 'hod') ||
+        (role === 'Admin' && returnedRole !== 'admin')
+      ) {
+        throw new Error('Wrong portal, please use the right portal');
+      }
+      // 2. Store role from API first, then login
+      setRoleFromAPI(returnedRole);
       await login(email, password);
-      // No manual push; GlobalContext handles redirect
+      // Wait a moment for auth state to update before navigation
+      setTimeout(() => {
+        router.push(dashboardRoute);
+      }, 100);
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
@@ -94,7 +109,9 @@ function LoginForm({ role, cta, login }: { role: string; cta: string; login: (em
 }
 
 export default function Home() {
-  const { login } = useAuth();
+  const { login, setRoleFromAPI } = useAuth();
+  const [state, dispatch] = useReducer((state: any, action: any) => state, {});
+  const router = useRouter();
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-md">
@@ -120,7 +137,7 @@ export default function Home() {
                   Access your results, track your CGPA, and more.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="Student" cta="Login as Student" login={(email, password) => login(email, password)} />
+              <LoginForm role="Student" cta="Login as Student" login={login} dashboardRoute="/student" dispatch={dispatch} router={router} setRoleFromAPI={setRoleFromAPI} />
             </Card>
           </TabsContent>
           <TabsContent value="hod">
@@ -131,7 +148,7 @@ export default function Home() {
                   Manage departmental results and student registries.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="HOD" cta="Login as HOD" login={(email, password) => login(email, password)} />
+              <LoginForm role="HOD" cta="Login as HOD" login={login} dashboardRoute="/hod" dispatch={dispatch} router={router} setRoleFromAPI={setRoleFromAPI} />
             </Card>
           </TabsContent>
           <TabsContent value="admin">
@@ -142,7 +159,7 @@ export default function Home() {
                   Manage university settings, policies, and approvals.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="Admin" cta="Login as Admin" login={(email, password) => login(email, password)} />
+              <LoginForm role="Admin" cta="Login as Admin" login={login} dashboardRoute="/admin" dispatch={dispatch} router={router} setRoleFromAPI={setRoleFromAPI} />
             </Card>
           </TabsContent>
         </Tabs>
