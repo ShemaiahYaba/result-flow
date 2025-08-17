@@ -1,29 +1,32 @@
 'use client';
-
-import { useGlobalContext } from '@/contexts/GlobalContext';
 import { useAuth } from '@/providers/AuthProvider';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Book, CheckSquare, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-import { GlobalProvider } from '@/contexts/GlobalContext';
-
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminDashboardPage() {
     const { user, role, loading, logout, isAuthenticated } = useAuth();
     const router = useRouter();
+    const [isClient, setIsClient] = useState(false);
+
+    // Ensure we're on the client side before doing any redirects
+    useEffect(() => {
+      setIsClient(true);
+    }, []);
 
     useEffect(() => {
+      if (!isClient) return; // Don't redirect during SSR
+      
+      // Only redirect if not authenticated
       if (!loading && !isAuthenticated) {
         router.push('/');
-      } else if (!loading && role && role !== 'admin') {
-        router.push('/unauthorized');
       }
-    }, [loading, isAuthenticated, role, router]);
+    }, [isClient, loading, isAuthenticated, router, user]);
 
-    if (loading) {
+    // Show consistent loading state during SSR and initial client hydration
+    if (loading || !isClient) {
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -35,14 +38,6 @@ export default function AdminDashboardPage() {
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div>Redirecting to login...</div>
-        </div>
-      );
-    }
-
-    if (role !== 'admin') {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div>Unauthorized. Redirecting...</div>
         </div>
       );
     }

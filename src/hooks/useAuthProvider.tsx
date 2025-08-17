@@ -175,9 +175,69 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
     }
   }, []);
 
+  // Helper: Fetch profile using session data directly (for auth state changes)
+  const fetchProfileWithSessionData = useCallback(async (sessionData: Session, force = false) => {
+    if (!sessionData?.user) {
+      return;
+    }
+
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 second
+    
+    const attemptFetch = async (attempt: number): Promise<void> => {
+      setIsLoading(true);
+      setStatus('loading');
+      setError(null);
+      
+      try {
+        const { data, error: dbError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', sessionData.user.id)
+          .single();
+        
+        if (dbError) throw dbError;
+        
+        const parsed = profileSchema.safeParse(data);
+        if (!parsed.success) {
+          throw { message: 'Invalid profile data', code: 'PROFILE_INVALID' };
+        }
+        
+        setProfile(parsed.data);
+        profileCacheRef.current = parsed.data;
+        saveProfileToCache(parsed.data);
+        setRoles(parsed.data.role ? [parsed.data.role] : []);
+        setStatus('authenticated');
+        retryCountRef.current = 0; // Reset retry count on success
+        
+      } catch (err: any) {
+        console.error(`Profile fetch attempt ${attempt + 1} failed:`, err);
+        
+        if (attempt < maxRetries - 1) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = baseDelay * Math.pow(2, attempt);
+          setTimeout(() => attemptFetch(attempt + 1), delay);
+        } else {
+          // Final attempt failed
+          setAppError(err, { phase: 'profile_fetch', attempts: maxRetries });
+          setStatus('unauthenticated');
+          retryCountRef.current = 0;
+        }
+      } finally {
+        if (attempt === maxRetries - 1 || attempt === 0) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    await attemptFetch(0);
+  }, [supabase, setAppError, saveProfileToCache]);
+
   // Helper: Fetch profile from DB with retry logic and exponential backoff
   const fetchProfile = useCallback(async (force = false) => {
-    if (!user || !session) return;
+    if (!user || !session) {
+      return;
+    }
     
     // Try cache first if not forcing refresh
     if (!force && loadProfileFromCache()) {
@@ -312,12 +372,12 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
     setIsLoading(true);
     setStatus('loading');
     setError(null);
-    const router = { push: (path: string) => window.location.assign(path) };
     try {
-      // Use business helper
-      await import('../lib/businessHelpers').then(({ loginHelper }) =>
-        loginHelper(email, password, dispatch, router)
-      );
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
       // After login, refresh session/profile
       await refreshSession();
       await fetchProfile(true);
@@ -329,7 +389,7 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
     } finally {
       setIsLoading(false);
     }
-  }, [dispatch, refreshSession, fetchProfile, setAppError]);
+  }, [supabase, refreshSession, fetchProfile, setAppError]);
 
   // Signup
   const signup = useCallback(async (profileData: CreateProfileInput & { password: string }) => {
@@ -435,7 +495,6 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
   // Listen for Supabase auth state changes (auto-refresh, session sync)
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange(async (event: string, session: Session | null) => {
-      console.log('Auth state change:', event, session?.user?.id);
       
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setSession(session);
@@ -447,25 +506,26 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
           profileCacheRef.current = null;
         }
         
+        // Fetch profile for new user - use session data directly since state hasn't updated yet
+        if (session?.user?.id && session.user.id !== user?.id) {
+          try {
+            // Call fetchProfile with session data directly
+            await fetchProfileWithSessionData(session, true);
+          } catch (error) {
+            console.error('Profile fetch failed:', error);
+          }
+        }
+        
         setStatus(session?.user ? 'authenticated' : 'unauthenticated');
         
-        // Queue profile fetch
-        fetchProfile().catch(err => {
-          console.error('Profile fetch failed during auth state change:', err);
-        });
-        
       } else if (event === 'SIGNED_OUT') {
-        const currentUserId = user?.id;
         setSession(null);
         setUser(null);
         setProfile(null);
-        setRoles([]);
-        profileCacheRef.current = null;
-        clearProfileCache(currentUserId);
         setStatus('unauthenticated');
-        
-        // Clear persisted session data
-              }
+        clearProfileCache(user?.id);
+        profileCacheRef.current = null;
+      }
       
       // Always ensure session is marked as initialized
       if (!isSessionInitialized) {
@@ -491,7 +551,7 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
     user,
     session,
     profile,
-    isAuthenticated: !!user && !!session && !!profile,
+    isAuthenticated: !!user && !!session, // Don't require profile for authentication
     isSessionInitialized,
     isLoading,
     status,
