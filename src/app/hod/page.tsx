@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Book, Upload } from "lucide-react";
+import { Users, Book, Upload, LogOut } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
@@ -55,11 +55,18 @@ export default function HodDashboardPage() {
 
 // Move the dashboard UI to a separate component for clarity
 function HodDashboard() {
+  const { logout } = useAuth();
+  
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold font-headline">HOD Dashboard</h1>
-        <p className="text-muted-foreground">Welcome, Head of Department. Manage your department's results here.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold font-headline">HOD Dashboard</h1>
+          <p className="text-muted-foreground">Welcome, Head of Department. Manage your department's results here.</p>
+        </div>
+        <Button variant="outline" onClick={logout} className="flex items-center gap-2">
+          <LogOut className="w-4 h-4" /> Logout
+        </Button>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>

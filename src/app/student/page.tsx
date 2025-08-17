@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download } from "lucide-react";
+import { Download, LogOut } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +31,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function StudentDashboardPage() {
-  const { user, role, loading, isAuthenticated } = useAuth();
+  const { user, role, loading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
 
@@ -70,17 +70,24 @@ export default function StudentDashboardPage() {
 }
 
 function StudentDashboard() {
+  const { logout } = useAuth();
+  
   return (
     <div className="space-y-6">
-        <div className="flex items-center justify-between">
-            <div>
-                <h1 className="text-3xl font-bold font-headline">Student Dashboard</h1>
-                <p className="text-muted-foreground">Welcome, Adewale Adekunle (F/HD/21/1234567)</p>
-            </div>
-             <Button variant="outline">
-                <Download className="mr-2 h-4 w-4" /> Download Transcript
-            </Button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold font-headline">Student Dashboard</h1>
+          <p className="text-muted-foreground">Welcome! Here's an overview of your academic progress.</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline">
+            <Download className="mr-2 h-4 w-4" /> Download Transcript
+          </Button>
+          <Button variant="outline" onClick={logout} className="flex items-center gap-2">
+            <LogOut className="w-4 h-4" /> Logout
+          </Button>
+        </div>
+      </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
