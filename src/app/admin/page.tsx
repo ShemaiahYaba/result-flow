@@ -13,9 +13,16 @@ const mockStats: DashboardStats = {
 };
 
 export default function AdminPage() {
-  const { session } = useGlobalContext();
-  if (!session) {
-    return <div>Unauthorized. Please log in.</div>;
+  const { state } = useGlobalContext();
+  // Only allow admins
+  if (!state.auth.user || state.auth.profile?.role !== 'admin') {
+    if (typeof window !== 'undefined') {
+      // If logged in but wrong role, redirect
+      if (state.auth.user && state.auth.profile?.role === 'hod') window.location.href = '/hod';
+      else if (state.auth.user && state.auth.profile?.role === 'student') window.location.href = '/student';
+      else window.location.href = '/';
+    }
+    return <div>Unauthorized. Redirecting...</div>;
   }
   return (
     <GlobalProvider>

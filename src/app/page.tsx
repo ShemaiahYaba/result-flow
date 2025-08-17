@@ -43,12 +43,10 @@ function LoginForm({ role, cta }: { role: string; cta: string }) {
         throw new Error(data.error || 'Lookup failed');
       }
       const { email } = await res.json();
-      // 2. Login with Supabase
-      const supabase = createClient();
-      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-      if (loginError) throw new Error(loginError.message);
-      // 3. Redirect on success
-      router.push('/admin');
+      // 2. Login using GlobalContext (handles role-based redirect)
+      const { login } = require('@/contexts/GlobalContext');
+      await login(email, password, role.toLowerCase());
+      // No manual push; GlobalContext handles redirect
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {

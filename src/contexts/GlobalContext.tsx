@@ -166,6 +166,9 @@ export interface GlobalState {
   auth: AuthState;
   data: DataState;
   ui: UIState;
+  // Add session and role for compatibility with page checks
+  session?: any | null;
+  role?: string;
 }
 
 // ============================================================

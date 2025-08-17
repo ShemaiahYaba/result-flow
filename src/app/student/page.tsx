@@ -26,7 +26,20 @@ const currentResults = [
     { code: 'CSC 499', title: 'Project', units: 6, grade: 'A', score: 78 },
 ];
 
+import { useGlobalContext } from '@/contexts/GlobalContext';
+
 export default function StudentDashboardPage() {
+  const { state } = useGlobalContext();
+  // Only allow students
+  if (!state.auth.user || state.auth.profile?.role !== 'student') {
+    if (typeof window !== 'undefined') {
+      // If logged in but wrong role, redirect
+      if (state.auth.user && state.auth.profile?.role === 'admin') window.location.href = '/admin';
+      else if (state.auth.user && state.auth.profile?.role === 'hod') window.location.href = '/hod';
+      else window.location.href = '/';
+    }
+    return <div>Unauthorized. Redirecting...</div>;
+  }
   return (
     <GlobalProvider>
       <StudentDashboard />

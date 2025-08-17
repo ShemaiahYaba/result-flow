@@ -1,14 +1,26 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Book, Upload } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
-import { requireUser } from "@/lib/auth";
 import { GlobalProvider } from "@/contexts/GlobalContext";
 
+import { useGlobalContext } from '@/contexts/GlobalContext';
+
 export default function HodDashboardPage() {
+  const { state } = useGlobalContext();
+  // Only allow HODs
+  if (!state.auth.user || state.auth.profile?.role !== 'hod') {
+    if (typeof window !== 'undefined') {
+      // If logged in but wrong role, redirect
+      if (state.auth.user && state.auth.profile?.role === 'admin') window.location.href = '/admin';
+      else if (state.auth.user && state.auth.profile?.role === 'student') window.location.href = '/student';
+      else window.location.href = '/';
+    }
+    return <div>Unauthorized. Redirecting...</div>;
+  }
   return (
     <GlobalProvider>
       <HodDashboard />
