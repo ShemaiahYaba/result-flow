@@ -29,23 +29,22 @@ const currentResults = [
 
 import { useGlobalContext } from '@/contexts/GlobalContext';
 
+import { requireUser } from '@/lib/auth';
+import { useAuth } from '@/providers/AuthProvider';
+
 export default function StudentDashboardPage() {
-  const { state } = useGlobalContext();
-  // Wait for loading to finish before checking auth
-  if (state.auth.isLoading) {
+  const user = requireUser();
+  const { role, loading } = useAuth();
+  if (loading) {
     return <div>Loading...</div>;
   }
-  if (!state.auth.user || state.auth.profile?.role !== 'student') {
+  if (role !== 'student') {
     if (typeof window !== 'undefined') {
       window.location.href = '/unauthorized';
     }
     return <div>Unauthorized. Redirecting...</div>;
   }
-  return (
-    <GlobalProvider>
-      <StudentDashboard />
-    </GlobalProvider>
-  );
+  return <StudentDashboard />;
 }
 
 function StudentDashboard() {

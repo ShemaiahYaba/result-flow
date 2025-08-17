@@ -1,8 +1,9 @@
 'use client';
 
 import React, { createContext, useReducer, useContext, useEffect } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
-import { createClient } from '../utils/supabase/client';
+import { supabaseClient } from '../lib/supabase';
 
 // ============================================================
 // TYPES & INTERFACES
@@ -387,12 +388,16 @@ const initialState: GlobalState = {
 // CONTEXT
 // ============================================================
 
+
 interface GlobalContextType {
+  isAdmin: () => boolean;
+  isHOD: () => boolean;
+  isStudent: () => boolean;
+  hasPermission: (permission: string) => boolean;
   state: GlobalState;
   dispatch: React.Dispatch<GlobalAction>;
   session: Session | null;
-  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
-  // Auth helpers
+  setSession: (session: Session | null) => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
@@ -414,11 +419,6 @@ interface GlobalContextType {
   setCurrentPage: (page: string) => void;
   setTheme: (theme: 'light' | 'dark') => void;
   setLanguage: (language: 'en' | 'fr' | 'es') => void;
-  // Utility helpers
-  isAdmin: () => boolean;
-  isHOD: () => boolean;
-  isStudent: () => boolean;
-  hasPermission: (permission: string) => boolean;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -427,7 +427,6 @@ const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 // PROVIDER COMPONENT
 // ============================================================
 
-import type { Session } from '@supabase/supabase-js';
 
 interface GlobalProviderProps {
   children: React.ReactNode;
@@ -441,7 +440,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
 
   // Subscribe to Supabase auth changes
   React.useEffect(() => {
-    const supabase = createClient();
+    const supabase = supabaseClient;
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       if (event === 'SIGNED_OUT') {
@@ -455,7 +454,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
   }, []);
 
   const login = async (email: string, password: string) => {
-    const supabase = createClient();
+    const supabase = supabaseClient;
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -502,7 +501,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
 
   // Update profile implementation (stub, must be implemented as needed)
   const logout = async () => {
-  const supabase = createClient();
+  const supabase = supabaseClient;
   try {
     await supabase.auth.signOut();
     dispatch({ type: 'SET_USER', payload: null });
@@ -537,7 +536,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
 };
 
 const updateProfile = async (profile: Partial<UserProfile>) => {
-    const supabase = createClient();
+    const supabase = supabaseClient;
     try {
       // Example: update profile in Supabase
       // await supabase.from('profiles').update(profile).eq('id', state.auth.user?.id);

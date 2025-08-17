@@ -10,23 +10,22 @@ import { GlobalProvider } from "@/contexts/GlobalContext";
 
 import { useGlobalContext } from '@/contexts/GlobalContext';
 
+import { requireUser } from '@/lib/auth';
+import { useAuth } from '@/providers/AuthProvider';
+
 export default function HodDashboardPage() {
-  const { state } = useGlobalContext();
-  // Wait for loading to finish before checking auth
-  if (state.auth.isLoading) {
+  const user = requireUser();
+  const { role, loading } = useAuth();
+  if (loading) {
     return <div>Loading...</div>;
   }
-  if (!state.auth.user || state.auth.profile?.role !== 'hod') {
+  if (role !== 'hod') {
     if (typeof window !== 'undefined') {
       window.location.href = '/unauthorized';
     }
     return <div>Unauthorized. Redirecting...</div>;
   }
-  return (
-    <GlobalProvider>
-      <HodDashboard />
-    </GlobalProvider>
-  );
+  return <HodDashboard />;
 }
 
 // Move the dashboard UI to a separate component for clarity

@@ -18,15 +18,15 @@ const navItems = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <GlobalProvider>
-    <SidebarProvider>
-      <Sidebar variant="inset" collapsible="icon">
-        <DashboardSidebar navItems={navItems} />
-      </Sidebar>
-      <SidebarInset>
-        <Header />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+      <SidebarProvider>
+        <Sidebar variant="inset" collapsible="icon">
+          <DashboardSidebar navItems={navItems} />
+        </Sidebar>
+        <SidebarInset>
+          <Header />
+          <main className="flex-1 p-4 md:p-6">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
     </GlobalProvider>
   );
 }

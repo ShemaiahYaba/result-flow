@@ -1,10 +1,12 @@
-import { createServerSupabase } from './supabase';
+// Client-side authentication guard for React components/pages
+import { useAuth } from '@/providers/AuthProvider';
 
-import { useGlobalContext } from '@/contexts/GlobalContext';
-
+/**
+ * Throws if not authenticated. Returns user if authenticated.
+ * Use inside client components only.
+ */
 export function requireUser() {
-  // This is now a client-side hook, not an async server function
-  const { session } = useGlobalContext();
-  if (!session) throw new Error('Unauthorized');
-  return session.user;
+  const { user } = useAuth();
+  if (!user) throw new Error('Unauthorized');
+  return user;
 }

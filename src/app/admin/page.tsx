@@ -1,30 +1,29 @@
 'use client';
 
 import { useGlobalContext } from '@/contexts/GlobalContext';
+import { useAuth } from '@/providers/AuthProvider';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Book, CheckSquare, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { GlobalProvider } from '@/contexts/GlobalContext';
 
+import { requireUser } from '@/lib/auth';
+
 export default function AdminDashboardPage() {
-    const { state } = useGlobalContext();
-    // Wait for loading to finish before checking auth
-    if (state.auth.isLoading) {
+    const user = requireUser();
+    const { role, loading, logout } = useAuth();
+    if (loading) {
       return <div>Loading...</div>;
     }
-    if (!state.auth.user || state.auth.profile?.role !== 'admin') {
+    if (role !== 'admin') {
       if (typeof window !== 'undefined') {
         window.location.href = '/unauthorized';
       }
       return <div>Unauthorized. Redirecting...</div>;
     }
-    return (
-      <GlobalProvider>
-        <AdminDashboard />
-      </GlobalProvider>
-    );
-  }
+    return <AdminDashboard />;
+}
   // Example stats, replace with real data as needed
   const stats = {
     totalHods: 3,
@@ -34,7 +33,7 @@ export default function AdminDashboardPage() {
   };
 
   function AdminDashboard() {
-    const { logout } = useGlobalContext();
+    const { logout } = useAuth();
     return (      
     <div className="space-y-6">
       <div className="flex items-center justify-between">
