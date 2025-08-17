@@ -29,21 +29,46 @@ const currentResults = [
 
 import { useGlobalContext } from '@/contexts/GlobalContext';
 
-import { requireUser } from '@/lib/auth';
 import { useAuth } from '@/providers/AuthProvider';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function StudentDashboardPage() {
-  const user = requireUser();
-  const { role, loading } = useAuth();
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-  if (role !== 'student') {
-    if (typeof window !== 'undefined') {
-      window.location.href = '/unauthorized';
+  const { user, role, loading, isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push('/');
+    } else if (!loading && role && role !== 'student') {
+      router.push('/unauthorized');
     }
-    return <div>Unauthorized. Redirecting...</div>;
+  }, [loading, isAuthenticated, role, router]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div>Redirecting to login...</div>
+      </div>
+    );
+  }
+
+  if (role !== 'student') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div>Unauthorized. Redirecting...</div>
+      </div>
+    );
+  }
+
   return <StudentDashboard />;
 }
 

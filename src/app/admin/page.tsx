@@ -8,22 +8,51 @@ import { Button } from "@/components/ui/button";
 
 import { GlobalProvider } from '@/contexts/GlobalContext';
 
-import { requireUser } from '@/lib/auth';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function AdminDashboardPage() {
-    const user = requireUser();
-    const { role, loading, logout } = useAuth();
-    if (loading) {
-      return <div>Loading...</div>;
-    }
-    if (role !== 'admin') {
-      if (typeof window !== 'undefined') {
-        window.location.href = '/unauthorized';
+    const { user, role, loading, logout, isAuthenticated } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+      if (!loading && !isAuthenticated) {
+        router.push('/');
+      } else if (!loading && role && role !== 'admin') {
+        router.push('/unauthorized');
       }
-      return <div>Unauthorized. Redirecting...</div>;
+    }, [loading, isAuthenticated, role, router]);
+
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        </div>
+      );
     }
+
+    if (!isAuthenticated || !user) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div>Redirecting to login...</div>
+        </div>
+      );
+    }
+
+    if (role !== 'admin') {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div>Unauthorized. Redirecting...</div>
+        </div>
+      );
+    }
+
     return <AdminDashboard />;
 }
+
+function AdminDashboard() {
+  const { logout } = useAuth();
+  
   // Example stats, replace with real data as needed
   const stats = {
     totalHods: 3,
@@ -31,10 +60,8 @@ export default function AdminDashboardPage() {
     courses: 20,
     pendingApprovals: 2,
   };
-
-  function AdminDashboard() {
-    const { logout } = useAuth();
-    return (      
+  
+  return (      
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
