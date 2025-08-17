@@ -17,7 +17,24 @@ const navItems = [
   { href: "/admin/approve-results", label: "Approve Results", icon: CheckCircle },
 ];
 
+import { useGlobalContext } from '@/contexts/GlobalContext';
+import { useEffect } from 'react';
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const { state } = useGlobalContext();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (!state.auth.user || state.auth.profile?.role !== 'admin') {
+        window.location.href = '/unauthorized';
+      }
+    }
+  }, [state.auth.user, state.auth.profile]);
+
+  if (!state.auth.user || state.auth.profile?.role !== 'admin') {
+    return <div>Unauthorized. Redirecting...</div>;
+  }
+
   return (
     <GlobalProvider>
       {/* Sidebar and layout structure remain unchanged */}

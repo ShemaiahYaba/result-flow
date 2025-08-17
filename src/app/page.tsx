@@ -12,13 +12,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRouter } from "next/navigation";
 import { useState } from 'react';
 
 import { useGlobalContext } from '@/contexts/GlobalContext';
 
 function LoginForm({ role, cta }: { role: string; cta: string }) {
-  const router = useRouter();
   const [idValue, setIdValue] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
