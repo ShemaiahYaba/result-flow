@@ -15,8 +15,7 @@ const initialProfileData = {
     lastName: "Adekunle",
     email: "adekunle@university.edu",
     phone: "+234 801 234 5678",
-    department: "Computer Science",
-    matricNo: "F/HD/21/1234567"
+    hodId: "F/HD/21/1234567"
 };
 
 export const dynamic = 'force-dynamic';
@@ -59,7 +58,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="grid gap-1.5">
                             <h2 className="text-2xl font-bold">{profile.firstName + " " + profile.middleName + " " + profile.lastName}</h2>
-                            <p className="text-muted-foreground">{profile.matricNo}</p>
+                            <p className="text-muted-foreground">{profile.hodId}</p>
                             <p className="text-muted-foreground">{profile.email}</p>
                         </div>
                     </div>
@@ -78,15 +77,11 @@ export default function ProfilePage() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="email">Email Address</Label>
-                            <Input id="email" type="email" value={profile.email} onChange={handleProfileChange} />
+                            <Input id="email" type="email" value={profile.email} onChange={handleProfileChange} disabled />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="phone">Phone Number</Label>
                             <Input id="phone" type="tel" value={profile.phone} onChange={handleProfileChange} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="department">Department</Label>
-                            <Input id="department" value={profile.department} disabled />
                         </div>
                         <div className="md:col-span-2 flex justify-end">
                             <Button>Save Changes</Button>

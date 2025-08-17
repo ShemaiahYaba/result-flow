@@ -15,10 +15,11 @@ import Link from 'next/link';
 import { useSidebar } from '../ui/sidebar';
 import { LogOut, User, Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/providers/AuthProvider';
 
 export function UserNav() {
-  const { state } = useSidebar();
-  const pathname = usePathname();
+    const pathname = usePathname();
+    const { logout } = useAuth();
 
   const getProfileLink = () => {
     if (pathname.startsWith('/admin')) {
@@ -51,24 +52,22 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <Link href={getProfileLink()} legacyBehavior passHref>
-            <DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={getProfileLink()}>
               <User className="mr-2 h-4 w-4" />
               Profile
-            </DropdownMenuItem>
-          </Link>
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem>
             <Settings className="mr-2 h-4 w-4" />
             Settings
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <Link href="/" legacyBehavior passHref>
-            <DropdownMenuItem>
-                <LogOut className="mr-2 h-4 w-4" />
-                Log out
-            </DropdownMenuItem>
-        </Link>
+        <DropdownMenuItem onClick={logout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Log out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

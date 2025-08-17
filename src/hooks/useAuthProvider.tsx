@@ -250,6 +250,7 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
         profileCacheRef.current = parsed.data;
         saveProfileToCache(parsed.data);
         setRoles(parsed.data.role ? [parsed.data.role] : []);
+        setRoleFromAPI(parsed.data.role || ''); // Set role from API
         setStatus('authenticated');
         retryCountRef.current = 0; // Reset retry count on success
         
@@ -314,6 +315,7 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
         profileCacheRef.current = parsed.data;
         saveProfileToCache(parsed.data);
         setRoles(parsed.data.role ? [parsed.data.role] : []);
+        setRoleFromAPI(parsed.data.role || ''); // Set role from API
         setStatus('authenticated');
         retryCountRef.current = 0; // Reset retry count on success
         
@@ -377,7 +379,12 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
         profileCacheRef.current = null;
       }
       
-      setStatus(data.session?.user ? 'authenticated' : 'unauthenticated');
+      // Fetch profile and set role if session exists
+      if (data.session?.user) {
+        await fetchProfileWithSessionData(data.session);
+      } else {
+        setStatus('unauthenticated');
+      }
       
     } catch (err: any) {
       console.error('Session refresh failed:', err);
@@ -386,6 +393,7 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
       setUser(null);
       setProfile(null);
       setRoles([]);
+      setRoleFromAPI('');
       profileCacheRef.current = null;
       setStatus('unauthenticated');
     } finally {
@@ -396,7 +404,7 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
         sessionTimeoutRef.current = null;
       }
     }
-  }, [supabase, setAppError, user?.id, clearProfileCache]);
+  }, [supabase, setAppError, user?.id, clearProfileCache, fetchProfileWithSessionData]);
 
   // Retry auth helper for network errors
   const retryAuth = useCallback(async () => {
@@ -593,6 +601,11 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
         if (session?.user?.id !== user?.id) {
           clearProfileCache(user?.id);
           profileCacheRef.current = null;
+        }
+        
+        // Fetch profile immediately after session is established
+        if (session?.user) {
+          await fetchProfileWithSessionData(session);
         }
         
         setStatus(session?.user ? 'authenticated' : 'unauthenticated');

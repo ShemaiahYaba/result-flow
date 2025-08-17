@@ -25,8 +25,7 @@ export function DashboardSidebar({ navItems }: { navItems: NavItem[] }) {
   return (
     <>
       <SidebarHeader>
-          <SidebarMenuButton asChild className="h-auto justify-start py-2" size="lg">
-              <Link href="/">
+          <SidebarMenuButton className="h-auto justify-start py-2" size="lg">
                 <div className="p-2 bg-primary rounded-lg">
                     <GraduationCap className="size-6 shrink-0 text-primary-foreground" />
                 </div>
@@ -34,7 +33,6 @@ export function DashboardSidebar({ navItems }: { navItems: NavItem[] }) {
                     <span className="font-headline text-lg font-bold">ResultFlow</span>
                     <span className="text-xs text-muted-foreground">University of Lagos</span>
                 </div>
-              </Link>
           </SidebarMenuButton>
       </SidebarHeader>
       <SidebarContent>
