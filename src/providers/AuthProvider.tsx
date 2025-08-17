@@ -47,13 +47,18 @@ export function AuthProvider({ children, initialRole, initialUser }: AuthProvide
   const authAPI = useAuthProvider(initialRole, initialUser);
 
   // Derive guaranteed role and loading
+  // Always guarantee a defined role string for context consumers
   let role: 'student' | 'admin' | 'hod' | '' = '';
   if (initialRole && ["student", "admin", "hod"].includes(initialRole)) {
     role = initialRole as 'student' | 'admin' | 'hod';
   } else if (authAPI?.profile && typeof authAPI.profile.role === 'string') {
     if (["student", "admin", "hod"].includes(authAPI.profile.role)) {
       role = authAPI.profile.role;
+    } else {
+      role = '';
     }
+  } else {
+    role = '';
   }
   // Prefer initialUser if provided
   const user = initialUser || authAPI.user;
