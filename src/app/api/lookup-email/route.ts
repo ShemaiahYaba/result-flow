@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { createServiceClient } from '../../../utils/supabase/server';
 
 const ALLOWED_ID_TYPES = ['matric_number', 'staff_id'] as const;
 type IdType = typeof ALLOWED_ID_TYPES[number];
@@ -49,27 +46,19 @@ export async function POST(req: NextRequest) {
     }
     console.log('✅ idValue validation passed:', idValue);
     
-    // Check environment variables
-    console.log('Environment check:');
-    console.log('- SUPABASE_URL:', SUPABASE_URL ? '✅ Set' : '❌ Missing');
-    console.log('- SERVICE_ROLE_KEY:', SERVICE_ROLE_KEY ? '✅ Set' : '❌ Missing');
-    console.log('Service role key length:', SERVICE_ROLE_KEY?.length);
-    
-    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-      console.log('❌ Missing required environment variables');
+    // Initialize Supabase with service role key
+    console.log('Initializing Supabase service client...');
+    let supabase: any;
+    try {
+      supabase = createServiceClient();
+      console.log('✅ Supabase service client initialized');
+    } catch (error: any) {
+      console.log('❌ Failed to initialize Supabase service client:', error.message);
       return NextResponse.json({ 
         error: 'Server configuration error', 
-        missing: {
-          supabaseUrl: !SUPABASE_URL,
-          serviceRoleKey: !SERVICE_ROLE_KEY
-        }
+        details: error.message
       }, { status: 500 });
     }
-    
-    // Initialize Supabase with service role key
-    console.log('Initializing Supabase client...');
-    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    console.log('✅ Supabase client initialized');
     
     // Log the query we're about to execute
     console.log('Executing query:');

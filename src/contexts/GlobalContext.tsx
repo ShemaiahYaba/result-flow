@@ -3,7 +3,7 @@
 import React, { createContext, useReducer, useContext, useEffect } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
-import { supabaseClient } from '../lib/supabase';
+import { supabaseClient } from '../utils/supabase/client';
 
 // ============================================================
 // TYPES & INTERFACES
@@ -438,7 +438,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
   // Subscribe to Supabase auth changes
   React.useEffect(() => {
     const supabase = supabaseClient;
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
       setSession(session);
       if (event === 'SIGNED_OUT') {
         dispatch({ type: 'SET_USER', payload: null });

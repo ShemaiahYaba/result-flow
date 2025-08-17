@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabaseClient } from '../lib/supabase';
+import { supabaseClient } from '../utils/supabase/client';
 import { useGlobalContext } from '../contexts/GlobalContext';
 import { profileSchema, CreateProfileInput } from '../lib/validation/profiles.schema';
 import { Session, User } from '@supabase/supabase-js';
@@ -434,7 +434,7 @@ export function useAuthProvider(initialRole?: string, initialUser?: any): AuthPr
 
   // Listen for Supabase auth state changes (auto-refresh, session sync)
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event: string, session: Session | null) => {
       console.log('Auth state change:', event, session?.user?.id);
       
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {

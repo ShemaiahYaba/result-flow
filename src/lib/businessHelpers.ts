@@ -1,4 +1,4 @@
-import { supabaseClient } from './supabase';
+import { supabaseClient } from '../utils/supabase/client';
 import type { UserProfile } from '../contexts/GlobalContext';
 
 export async function loginHelper(email: string, password: string, dispatch: any, router: any) {
