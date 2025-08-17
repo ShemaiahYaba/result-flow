@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useAuthProvider, type AuthProviderAPI } from '../hooks/useAuthProvider';
-import { type HydratedSessionData } from '../utils/auth/session-hydration';
 
 interface AuthContextProps extends AuthProviderAPI {}
 
@@ -15,7 +14,6 @@ const AuthContext = createContext<ExtendedAuthContextProps | undefined>(undefine
 
 interface AuthProviderProps {
   children: ReactNode;
-  ssrSessionData?: HydratedSessionData;
   initialRole?: string;
   initialUser?: any;
 }
@@ -35,7 +33,7 @@ interface AuthProviderProps {
  *   return (
  *     <html>
  *       <body>
- *         <AuthProvider ssrSessionData={serializedSession}>
+ *         <AuthProvider>
  *           {children}
  *         </AuthProvider>
  *       </body>
@@ -44,9 +42,9 @@ interface AuthProviderProps {
  * }
  * ```
  */
-export function AuthProvider({ children, ssrSessionData, initialRole, initialUser }: AuthProviderProps) {
+export function AuthProvider({ children, initialRole, initialUser }: AuthProviderProps) {
   // Use SSR-hydrated role/user if provided
-  const authAPI = useAuthProvider(ssrSessionData, initialRole, initialUser);
+  const authAPI = useAuthProvider(initialRole, initialUser);
 
   // Derive guaranteed role and loading
   let role: 'student' | 'admin' | 'hod' | '' = '';

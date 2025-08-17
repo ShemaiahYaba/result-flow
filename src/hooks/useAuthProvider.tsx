@@ -1,19 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createClient } from '../utils/supabase/client';
+import { supabaseClient } from '../lib/supabase';
 import { useGlobalContext } from '../contexts/GlobalContext';
 import { profileSchema, CreateProfileInput } from '../lib/validation/profiles.schema';
 import { Session, User } from '@supabase/supabase-js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 // FIX: Corrected import path for useErrorHandler
 import { useErrorHandler, ErrorType } from '../utils/ErrorHandler';
-import { 
-  hydrateSessionFromSSR, 
-  isSessionExpired, 
-  validateSessionData,
-  persistSessionToStorage,
-  restoreSessionFromStorage,
-  type HydratedSessionData 
-} from '../utils/auth/session-hydration';
 
 // Standardized AppError type
 export type AppError = {
@@ -50,7 +42,7 @@ export interface AuthProviderAPI {
   retryAuth: () => Promise<void>; // New helper for retry logic
 }
 
-export function useAuthProvider(ssrSessionData?: HydratedSessionData, initialRole?: string, initialUser?: any): AuthProviderAPI {
+export function useAuthProvider(initialRole?: string, initialUser?: any): AuthProviderAPI {
   // SSR-safe: If running on the server, return minimal context
   if (typeof window === 'undefined') {
     return {
@@ -73,7 +65,7 @@ export function useAuthProvider(ssrSessionData?: HydratedSessionData, initialRol
       retryAuth: async () => {},
     };
   }
-  const supabase = createClient();
+  const supabase = supabaseClient;
   const { state, dispatch, addNotification } = useGlobalContext();
   const { handleError } = useErrorHandler();
   const queryClient = useQueryClient();
@@ -420,85 +412,33 @@ export function useAuthProvider(ssrSessionData?: HydratedSessionData, initialRol
     return permissions[role as 'admin' | 'hod' | 'student']?.includes(permission) || false;
   }, [profile]);
 
-  // Initialize session with hardening and SSR support
+  // Initialize session with only client-side logic (no SSR)
   const initializeSession = useCallback(async () => {
     if (isInitializingRef.current) return; // Prevent multiple initializations
     isInitializingRef.current = true;
-    
     try {
       setStatus('checking');
       setIsLoading(true);
-      
-      // Step 1: Try SSR session data first (prevents loading flash)
-      if (ssrSessionData) {
-        console.log('Hydrating from SSR session data');
-        const hydratedData = hydrateSessionFromSSR(ssrSessionData);
-        
-        if (hydratedData.session && validateSessionData(hydratedData.session) && !isSessionExpired(hydratedData.session)) {
-          setSession(hydratedData.session);
-          setUser(hydratedData.user);
-          setStatus('authenticated');
-          
-          // Try to load profile from cache first
-          if (hydratedData.user && loadProfileFromCache()) {
-            setStatus('authenticated');
-          } else if (hydratedData.user) {
-            // Queue profile fetch without blocking initialization
-            fetchProfile().catch(err => {
-              console.error('Profile fetch failed during SSR hydration:', err);
-            });
-          }
-          
-          // Persist to localStorage for future visits
-          persistSessionToStorage(hydratedData.session, hydratedData.user);
-          
-          return; // Early return - SSR hydration successful
-        }
-      }
-      
-      // Step 2: Try localStorage fallback
-      console.log('Trying localStorage session restore');
-      const storedData = restoreSessionFromStorage();
-      if (storedData.session && validateSessionData(storedData.session) && !isSessionExpired(storedData.session)) {
-        setSession(storedData.session);
-        setUser(storedData.user);
-        setStatus('authenticated');
-        
-        // Try to load profile from cache
-        if (storedData.user && loadProfileFromCache()) {
-          setStatus('authenticated');
-        } else if (storedData.user) {
-          // Queue profile fetch
-          fetchProfile().catch(err => {
-            console.error('Profile fetch failed during localStorage restore:', err);
-          });
-        }
-        
-        return; // Early return - localStorage restore successful
-      }
-      
-      // Step 3: Fallback to fresh session check
+      // Step 1: Try localStorage session restore (optional, can be expanded)
+      // (Example: you could implement logic to restore session from localStorage if you store it there)
+      // For now, skip and go straight to session refresh
+      // Step 2: Fallback to fresh session check
       console.log('Performing fresh session check');
       await refreshSession();
-      
       // If we have a user after session refresh, try to fetch profile
       const currentSession = await supabase.auth.getSession();
       if (currentSession.data.session?.user) {
         await fetchProfile();
-        // Persist the fresh session
-        persistSessionToStorage(currentSession.data.session, currentSession.data.session.user);
       }
-      
     } catch (err) {
       console.error('Session initialization failed:', err);
-      // Ensure we don't stay in loading state forever
       setStatus('unauthenticated');
     } finally {
       setIsSessionInitialized(true);
       setIsLoading(false);
       isInitializingRef.current = false;
     }
-  }, [refreshSession, fetchProfile, supabase, ssrSessionData, loadProfileFromCache]);
+  }, [refreshSession, fetchProfile, supabase]);
 
   // Listen for Supabase auth state changes (auto-refresh, session sync)
   useEffect(() => {
@@ -517,18 +457,10 @@ export function useAuthProvider(ssrSessionData?: HydratedSessionData, initialRol
         
         setStatus(session?.user ? 'authenticated' : 'unauthenticated');
         
-        // Persist session to localStorage
-        persistSessionToStorage(session, session?.user ?? null);
-        
-        // Queue profile fetch with retry logic
-        if (session?.user) {
-          try {
-            await fetchProfile();
-          } catch (err) {
-            console.error('Profile fetch failed in auth state change:', err);
-            // Don't block auth state change for profile fetch failures
-          }
-        }
+        // Queue profile fetch
+        fetchProfile().catch(err => {
+          console.error('Profile fetch failed during auth state change:', err);
+        });
         
       } else if (event === 'SIGNED_OUT') {
         const currentUserId = user?.id;
@@ -541,8 +473,7 @@ export function useAuthProvider(ssrSessionData?: HydratedSessionData, initialRol
         setStatus('unauthenticated');
         
         // Clear persisted session data
-        persistSessionToStorage(null, null);
-      }
+              }
       
       // Always ensure session is marked as initialized
       if (!isSessionInitialized) {
