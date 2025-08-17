@@ -17,10 +17,8 @@ export default function AdminPage() {
   // Only allow admins
   if (!state.auth.user || state.auth.profile?.role !== 'admin') {
     if (typeof window !== 'undefined') {
-      // If logged in but wrong role, redirect
-      if (state.auth.user && state.auth.profile?.role === 'hod') window.location.href = '/hod';
-      else if (state.auth.user && state.auth.profile?.role === 'student') window.location.href = '/student';
-      else window.location.href = '/';
+      // Always redirect unauthorized access to a generic unauthorized page
+      window.location.href = '/unauthorized';
     }
     return <div>Unauthorized. Redirecting...</div>;
   }

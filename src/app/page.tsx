@@ -13,8 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
-import { createClient } from '@/utils/supabase/client';
 import { useState } from 'react';
+
+import { useGlobalContext } from '@/contexts/GlobalContext';
 
 function LoginForm({ role, cta }: { role: string; cta: string }) {
   const router = useRouter();
@@ -44,8 +45,14 @@ function LoginForm({ role, cta }: { role: string; cta: string }) {
       }
       const { email } = await res.json();
       // 2. Login using GlobalContext (handles role-based redirect)
-      const { login } = require('@/contexts/GlobalContext');
-      await login(email, password, role.toLowerCase());
+      // Use global context login method
+      const { login } = useGlobalContext();
+      // Map role to correct type
+      let typedRole: 'admin' | 'hod' | 'student';
+      if (role.toLowerCase() === 'admin') typedRole = 'admin';
+      else if (role.toLowerCase() === 'hod') typedRole = 'hod';
+      else typedRole = 'student';
+      await login(email, password, typedRole);
       // No manual push; GlobalContext handles redirect
     } catch (err: any) {
       setError(err.message || 'Login failed');
