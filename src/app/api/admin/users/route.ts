@@ -46,35 +46,37 @@ export const GET = withAuth(
 
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      // Fetch users with their profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
+      // Fetch users with their entity data
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
         .select(`
           id,
-          role,
+          email,
+          user_entity_id,
+          roles!inner(role_name),
           created_at
         `)
         .order('created_at', { ascending: false });
 
-      if (profilesError) {
-        const error = errorHandler.parseSupabaseError(profilesError);
+      if (usersError) {
+        const error = errorHandler.parseSupabaseError(usersError);
         return NextResponse.json(
           { ok: false, error },
           { status: 500 }
         );
       }
 
-      const users = (profiles || []).map(profile => ({
-        id: profile.id,
-        email: '', // Email will be fetched separately if needed
-        role: profile.role,
-        created_at: profile.created_at,
+      const usersList = (usersData || []).map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        role: user.roles?.role_name,
+        created_at: user.created_at,
         last_sign_in_at: null
       }));
 
       const response = {
-        users,
-        total: users.length
+        users: usersList,
+        total: usersList.length
       };
 
       // Validate response

@@ -23,40 +23,51 @@ export const GET = makeRoute({
   requiredRole: 'admin',
   handle: async ({ supabase, user }) => {
     // Get admin profile data
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select(`
+        user_entity_id,
+        roles!inner(role_name)
+      `)
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      throw new Error('User not found');
+    }
+
+    const { data: adminProfile, error: profileError } = await supabase
+      .from('admins')
       .select(`
         id,
-        staff_id,
+        admin_id,
         email,
         first_name,
         middle_name,
         last_name,
         phone_number,
-        role,
         created_at
       `)
-      .eq('id', user.id)
-      .eq('role', 'admin')
+      .eq('id', userData.user_entity_id)
       .single();
 
     if (profileError) {
       throw new Error(`Failed to fetch admin profile: ${profileError.message}`);
     }
 
-    if (!profile) {
+    if (!adminProfile) {
       throw new Error('Admin profile not found');
     }
 
     return {
-      staff_id: profile.staff_id,
-      email: profile.email || user.email || '',
-      first_name: profile.first_name,
-      middle_name: profile.middle_name,
-      last_name: profile.last_name,
-      phone_number: profile.phone_number,
-      role: profile.role,
-      created_at: profile.created_at,
+      staff_id: adminProfile.admin_id,
+      email: adminProfile.email || user.email || '',
+      first_name: adminProfile.first_name,
+      middle_name: adminProfile.middle_name,
+      last_name: adminProfile.last_name,
+      phone_number: adminProfile.phone_number,
+      role: (userData.roles as any)?.role_name,
+      created_at: adminProfile.created_at,
     };
   }
 });

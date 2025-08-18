@@ -95,20 +95,30 @@ export async function authMiddleware(
       return { success: false, error, status: 401 };
     }
 
-    // Fetch user role from profiles table
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, role')
+    // Fetch user role from users table with role join
+    const { data: userData, error: profileError } = await supabase
+      .from('users')
+      .select(`
+        user_entity_id,
+        roles!inner(role_name)
+      `)
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile) {
+    if (profileError || !userData) {
       const error = errorHandler.createError(
         ErrorType.DB_NOT_FOUND,
-        'User profile not found'
+        'User not found in system'
       );
       return { success: false, error, status: 403 };
     }
+
+    const profile = {
+      id: user.id,
+      role: (userData.roles as any)?.role_name,
+      user_entity_id: userData.user_entity_id
+    };
+
 
     // Validate profile data
     let validatedProfile;

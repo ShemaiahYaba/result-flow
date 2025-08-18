@@ -187,13 +187,22 @@ class AuthService {
   // Fetch user profile from database
   private async fetchUserProfile(user: User): Promise<void> {
     try {
-      const { data: profile, error } = await this.supabase
-        .from('profiles')
-        .select('*')
+      const { data: userData, error } = await this.supabase
+        .from('users')
+        .select(`
+          user_entity_id,
+          roles!inner(role_name)
+        `)
         .eq('id', user.id)
         .single();
 
       if (error) throw error;
+
+      const profile = {
+        id: user.id,
+        role: (userData.roles as any)?.role_name,
+        user_entity_id: userData.user_entity_id
+      };
 
       const authUser: AuthUser = {
         id: user.id,
