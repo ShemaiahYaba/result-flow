@@ -32,29 +32,34 @@ import { PlusCircle, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-
-const initialColumns = [
-    { name: 'Matric No', type: 'Identifier', required: true },
-    { name: 'CA', type: 'Score', required: true },
-    { name: 'Exam', type: 'Score', required: true },
-    { name: 'Total', type: 'Calculated', required: false },
-];
-
-type Column = typeof initialColumns[0];
+import { useMarksheetFormat } from "@/hooks/useMarksheetFormat";
 
 export default function MarksheetFormatPage() {
-    const [columns, setColumns] = useState<Column[]>(initialColumns);
+    const { columns, loading, error, createColumn, updateColumn, deleteColumn } = useMarksheetFormat();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newColumn, setNewColumn] = useState({ name: "", type: "Text", required: false });
+    const [newColumn, setNewColumn] = useState<{ column_name: string; type: 'identifier' | 'text' | 'score'; required: boolean }>({ column_name: "", type: "text", required: false });
 
-    const handleAddColumn = () => {
-        if(newColumn.name && newColumn.type) {
-            setColumns([...columns, newColumn as Column]);
-            setIsDialogOpen(false);
-            setNewColumn({ name: "", type: "Text", required: false });
+    const handleAddColumn = async () => {
+        if(newColumn.column_name && newColumn.type) {
+            try {
+                await createColumn(newColumn);
+                setIsDialogOpen(false);
+                setNewColumn({ column_name: "", type: "text", required: false });
+            } catch (error: any) {
+                alert(error.message);
+            }
         }
-    }
+    };
+
+    const handleDeleteColumn = async (id: string) => {
+        if (confirm('Are you sure you want to delete this column?')) {
+            try {
+                await deleteColumn(id);
+            } catch (error: any) {
+                alert(error.message);
+            }
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -79,19 +84,18 @@ export default function MarksheetFormatPage() {
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="column-name" className="text-right">Column Name</Label>
-                                <Input id="column-name" placeholder="e.g., Full Name" className="col-span-3" value={newColumn.name} onChange={e => setNewColumn({...newColumn, name: e.target.value})}/>
+                                <Input id="column-name" placeholder="e.g., Full Name" className="col-span-3" value={newColumn.column_name} onChange={e => setNewColumn({...newColumn, column_name: e.target.value})}/>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="column-type" className="text-right">Type</Label>
-                                <Select value={newColumn.type} onValueChange={value => setNewColumn({...newColumn, type: value})}>
+                                <Select value={newColumn.type} onValueChange={value => setNewColumn({...newColumn, type: value as 'identifier' | 'text' | 'score'})}>
                                     <SelectTrigger className="col-span-3">
                                         <SelectValue placeholder="Select type" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Identifier">Identifier</SelectItem>
-                                        <SelectItem value="Text">Text</SelectItem>
-                                        <SelectItem value="Score">Score</SelectItem>
-                                        <SelectItem value="Calculated">Calculated</SelectItem>
+                                        <SelectItem value="identifier">Identifier</SelectItem>
+                                        <SelectItem value="text">Text</SelectItem>
+                                        <SelectItem value="score">Score</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -122,21 +126,40 @@ export default function MarksheetFormatPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {columns.map((col) => (
-                                <TableRow key={col.name}>
-                                    <TableCell className="font-medium">{col.name}</TableCell>
-                                    <TableCell><Badge variant="secondary">{col.type}</Badge></TableCell>
-                                    <TableCell>{col.required ? 'Yes' : 'No'}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon">
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center">Loading marksheet format...</TableCell>
                                 </TableRow>
-                            ))}
+                            ) : error ? (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center text-destructive">Error: {error}</TableCell>
+                                </TableRow>
+                            ) : columns.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center">No columns found</TableCell>
+                                </TableRow>
+                            ) : (
+                                columns.map((col) => (
+                                    <TableRow key={col.id}>
+                                        <TableCell className="font-medium">{col.column_name}</TableCell>
+                                        <TableCell><Badge variant="secondary">{col.type}</Badge></TableCell>
+                                        <TableCell>{col.required ? 'Yes' : 'No'}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon">
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="text-destructive hover:text-destructive"
+                                                onClick={() => handleDeleteColumn(col.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>

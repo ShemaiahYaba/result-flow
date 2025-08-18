@@ -29,27 +29,35 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
-
-const initialGrades = [
-    { grade: 'A', minScore: 70, maxScore: 100 },
-    { grade: 'B', minScore: 60, maxScore: 69 },
-    { grade: 'C', minScore: 50, maxScore: 59 },
-    { grade: 'D', minScore: 45, maxScore: 49 },
-    { grade: 'F', minScore: 0, maxScore: 44 },
-];
+import { useGradingPolicy } from "@/hooks/useGradingPolicy";
 
 export default function GradingPolicyPage() {
-    const [grades, setGrades] = useState(initialGrades);
+    const { policies, loading, error, createPolicy, updatePolicy, deletePolicy } = useGradingPolicy();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newGrade, setNewGrade] = useState({grade: "", minScore: 0, maxScore: 0 });
+    const [newGrade, setNewGrade] = useState({grade: "", min_score: 0, max_score: 0 });
+    const [editingPolicy, setEditingPolicy] = useState<string | null>(null);
 
-    const handleAddGrade = () => {
-        if (newGrade.grade && newGrade.minScore >= 0 && newGrade.maxScore > newGrade.minScore) {
-            setGrades([...grades, newGrade].sort((a,b) => b.minScore - a.minScore));
-            setIsDialogOpen(false);
-            setNewGrade({grade: "", minScore: 0, maxScore: 0 });
+    const handleAddGrade = async () => {
+        if (newGrade.grade && newGrade.min_score >= 0 && newGrade.max_score > newGrade.min_score) {
+            try {
+                await createPolicy(newGrade);
+                setIsDialogOpen(false);
+                setNewGrade({grade: "", min_score: 0, max_score: 0 });
+            } catch (error: any) {
+                alert(error.message);
+            }
         }
-    }
+    };
+
+    const handleDeleteGrade = async (id: string) => {
+        if (confirm('Are you sure you want to delete this grading policy?')) {
+            try {
+                await deletePolicy(id);
+            } catch (error: any) {
+                alert(error.message);
+            }
+        }
+    };
 
 
     return (
@@ -79,11 +87,11 @@ export default function GradingPolicyPage() {
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="min-score" className="text-right">Min Score</Label>
-                                <Input id="min-score" type="number" placeholder="e.g., 70" className="col-span-3" value={newGrade.minScore} onChange={e => setNewGrade({...newGrade, minScore: parseInt(e.target.value)})} />
+                                <Input id="min-score" type="number" placeholder="e.g., 70" className="col-span-3" value={newGrade.min_score} onChange={e => setNewGrade({...newGrade, min_score: parseInt(e.target.value)})} />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="max-score" className="text-right">Max Score</Label>
-                                <Input id="max-score" type="number" placeholder="e.g., 100" className="col-span-3" value={newGrade.maxScore} onChange={e => setNewGrade({...newGrade, maxScore: parseInt(e.target.value)})} />
+                                <Input id="max-score" type="number" placeholder="e.g., 100" className="col-span-3" value={newGrade.max_score} onChange={e => setNewGrade({...newGrade, max_score: parseInt(e.target.value)})} />
                             </div>
                         </div>
                         <DialogFooter>
@@ -108,21 +116,40 @@ export default function GradingPolicyPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {grades.map((g) => (
-                                <TableRow key={g.grade}>
-                                    <TableCell className="font-medium">{g.grade}</TableCell>
-                                    <TableCell>{g.minScore}</TableCell>
-                                    <TableCell>{g.maxScore}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon">
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center">Loading grading policies...</TableCell>
                                 </TableRow>
-                            ))}
+                            ) : error ? (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center text-destructive">Error: {error}</TableCell>
+                                </TableRow>
+                            ) : policies.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center">No grading policies found</TableCell>
+                                </TableRow>
+                            ) : (
+                                policies.map((policy) => (
+                                    <TableRow key={policy.id}>
+                                        <TableCell className="font-medium">{policy.grade}</TableCell>
+                                        <TableCell>{policy.min_score}</TableCell>
+                                        <TableCell>{policy.max_score}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon">
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                onClick={() => handleDeleteGrade(policy.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>

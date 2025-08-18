@@ -200,8 +200,11 @@ export function makeRoute<I = unknown, O = unknown>(config: HandlerConfig<I, O>)
       let user: AuthenticatedUser | null = null;
       if (config.requireAuth !== false) {
         try {
+          console.log('Route factory - attempting authentication for:', req.url);
           user = await getAuthenticatedUser(req);
+          console.log('Route factory - authenticated user:', { id: user.id, role: user.role, email: user.email });
         } catch (authError: any) {
+          console.log('Route factory - authentication error:', authError.message);
           // Handle authentication errors specifically
           if (authError.message?.includes('Session expired')) {
             return NextResponse.json(
