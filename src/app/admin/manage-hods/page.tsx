@@ -31,17 +31,12 @@ import { Label } from "@/components/ui/label"
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const initialHods = [
-    { id: 1, name: 'Dr. Chinedu Okoro', staffId: 'HOD/CSC/001', email: 'chinedu.okoro@university.edu', department: 'Computer Science', status: 'Active' },
-    { id: 2, name: 'Dr. Fatima Aliyu', staffId: 'HOD/MEE/001', email: 'fatima.aliyu@university.edu', department: 'Mechanical Engineering', status: 'Active' },
-    { id: 3, name: 'Dr. Adebayo Ogunbiyi', staffId: 'HOD/BCH/001', email: 'adebayo.o@university.edu', department: 'Biochemistry', status: 'Inactive' },
-];
+import { useManageHods } from "@/hooks/useManageHods";
 
 export const dynamic = 'force-dynamic';
 
 export default function ManageHodsPage() {
-    const [hods, setHods] = useState(initialHods);
+    const { hods, loading, error } = useManageHods();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     
     // Form state for new HOD
@@ -63,12 +58,8 @@ export default function ManageHodsPage() {
 
     const handleAddHod = () => {
         if (newHod.name && newHod.staffId && newHod.email && newHod.department) {
-            const newEntry = {
-                id: hods.length + 1,
-                ...newHod,
-                status: 'Active'
-            };
-            setHods([...hods, newEntry]);
+            // TODO: Implement API call to create new HOD
+            console.log('Creating new HOD:', newHod);
             setIsDialogOpen(false);
             // Reset form
             setNewHod({ name: "", staffId: "", email: "", department: "" });
@@ -146,24 +137,38 @@ export default function ManageHodsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {hods.map((hod) => (
-                                <TableRow key={hod.id}>
-                                    <TableCell className="font-medium">{hod.name}</TableCell>
-                                    <TableCell>{hod.staffId}</TableCell>
-                                    <TableCell>{hod.department}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={hod.status === 'Active' ? 'default' : 'secondary'}>{hod.status}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon">
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center">Loading HODs...</TableCell>
                                 </TableRow>
-                            ))}
+                            ) : error ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center text-destructive">Error: {error}</TableCell>
+                                </TableRow>
+                            ) : hods.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center">No HODs found</TableCell>
+                                </TableRow>
+                            ) : (
+                                hods.map((hod) => (
+                                    <TableRow key={hod.id}>
+                                        <TableCell className="font-medium">{hod.name}</TableCell>
+                                        <TableCell>{hod.staff_id}</TableCell>
+                                        <TableCell>{hod.department_name}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={hod.status === 'Active' ? 'default' : 'secondary'}>{hod.status}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon">
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>

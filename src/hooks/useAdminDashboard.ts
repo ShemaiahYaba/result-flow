@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/providers/UnifiedAuthProvider';
+import { authService } from '@/services/authService';
 
 export interface AdminStats {
   totalHods: number;
@@ -11,22 +12,31 @@ export interface AdminStats {
 export function useAdminDashboard() {
   const { signOut } = useAuth();
   const [stats, setStats] = useState<AdminStats>({
-    totalHods: 3,
-    departments: 5,
-    courses: 20,
-    pendingApprovals: 2,
+    totalHods: 0,
+    departments: 0,
+    courses: 0,
+    pendingApprovals: 0,
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // TODO: Replace with actual API calls
   const fetchStats = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // In real implementation, fetch from your API
-    } catch (error) {
+      const response = await authService.authenticatedFetch('/api/admin/dashboard');
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error?.message || 'Failed to fetch dashboard stats');
+      }
+
+      // Handle flexible response structure
+      const data = result.data || result;
+      setStats(data);
+    } catch (error: any) {
       console.error('Failed to fetch admin stats:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -39,6 +49,7 @@ export function useAdminDashboard() {
   return {
     stats,
     loading,
+    error,
     signOut,
     refetchStats: fetchStats
   };
