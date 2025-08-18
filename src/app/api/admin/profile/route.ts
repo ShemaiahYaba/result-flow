@@ -27,13 +27,24 @@ export const GET = makeRoute({
       .from('users')
       .select(`
         user_entity_id,
-        roles!inner(role_name)
+        role_id
       `)
       .eq('id', user.id)
       .single();
 
     if (userError || !userData) {
       throw new Error('User not found');
+    }
+
+    // Fetch role separately to avoid join issues
+    const { data: roleData, error: roleError } = await supabase
+      .from('roles')
+      .select('role_name')
+      .eq('id', userData.role_id)
+      .single();
+
+    if (roleError || !roleData) {
+      throw new Error('User role not found');
     }
 
     const { data: adminProfile, error: profileError } = await supabase
@@ -66,7 +77,7 @@ export const GET = makeRoute({
       middle_name: adminProfile.middle_name,
       last_name: adminProfile.last_name,
       phone_number: adminProfile.phone_number,
-      role: (userData.roles as any)?.role_name,
+      role: roleData.role_name,
       created_at: adminProfile.created_at,
     };
   }

@@ -100,7 +100,7 @@ export async function authMiddleware(
       .from('users')
       .select(`
         user_entity_id,
-        roles!inner(role_name)
+        role_id
       `)
       .eq('id', user.id)
       .single();
@@ -113,9 +113,24 @@ export async function authMiddleware(
       return { success: false, error, status: 403 };
     }
 
+    // Fetch role separately to avoid join issues
+    const { data: roleData, error: roleError } = await supabase
+      .from('roles')
+      .select('role_name')
+      .eq('id', userData.role_id)
+      .single();
+
+    if (roleError || !roleData) {
+      const error = errorHandler.createError(
+        ErrorType.DB_NOT_FOUND,
+        'User role not found'
+      );
+      return { success: false, error, status: 403 };
+    }
+
     const profile = {
       id: user.id,
-      role: (userData.roles as any)?.role_name,
+      role: roleData.role_name,
       user_entity_id: userData.user_entity_id
     };
 

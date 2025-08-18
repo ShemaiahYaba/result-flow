@@ -191,16 +191,25 @@ class AuthService {
         .from('users')
         .select(`
           user_entity_id,
-          roles!inner(role_name)
+          role_id
         `)
         .eq('id', user.id)
         .single();
 
       if (error) throw error;
 
+      // Fetch role separately to avoid join issues
+      const { data: roleData, error: roleError } = await this.supabase
+        .from('roles')
+        .select('role_name')
+        .eq('id', userData.role_id)
+        .single();
+
+      if (roleError) throw roleError;
+
       const profile = {
         id: user.id,
-        role: (userData.roles as any)?.role_name,
+        role: roleData?.role_name,
         user_entity_id: userData.user_entity_id
       };
 
