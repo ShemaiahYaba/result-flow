@@ -2,6 +2,7 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useDepartments } from "@/hooks/useDepartments";
 import {
   Card,
   CardContent,
@@ -30,37 +31,22 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 
-const initialDepartments = [
-    { id: 1, name: 'Computer Science', hod: 'Dr. Chinedu Okoro', code: 'CSC' },
-    { id: 2, name: 'Mechanical Engineering', hod: 'Dr. Fatima Aliyu', code: 'MEE' },
-    { id: 3, name: 'Biochemistry', hod: 'Dr. Adebayo Ogunbiyi', code: 'BCH' },
-];
-
 export const dynamic = 'force-dynamic';
 
 export default function DepartmentsPage() {
-    const [departments, setDepartments] = useState(initialDepartments);
+    const { departments, loading, error, fetchDepartments } = useDepartments();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newDeptName, setNewDeptName] = useState("");
     const [newDeptHod, setNewDeptHod] = useState("");
     const [newDeptCode, setNewDeptCode] = useState("");
 
     const handleAddDepartment = () => {
-        if (newDeptName && newDeptHod) {
-            setDepartments([
-                ...departments,
-                {
-                    id: departments.length + 1,
-                    name: newDeptName,
-                    hod: newDeptHod,
-                    code: newDeptCode
-                }
-            ]);
-            setIsDialogOpen(false);
-            setNewDeptName("");
-            setNewDeptHod("");
-            setNewDeptCode("");
-        }
+        // TODO: Implement POST API call to create department
+        console.log('Add department:', { newDeptName, newDeptCode });
+        setIsDialogOpen(false);
+        setNewDeptName("");
+        setNewDeptHod("");
+        setNewDeptCode("");
     }
 
     return (
@@ -113,25 +99,48 @@ export default function DepartmentsPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Department Name</TableHead>
-                                <TableHead>Head of Department (HOD)</TableHead>
+                                <TableHead>Department Code</TableHead>
+                                <TableHead>Head of Department</TableHead>
+                                <TableHead>Created At</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {departments.map((dept) => (
-                                <TableRow key={dept.id}>
-                                    <TableCell className="font-medium">{dept.name}</TableCell>
-                                    <TableCell>{dept.hod}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon">
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center">Loading departments...</TableCell>
                                 </TableRow>
-                            ))}
+                            ) : error ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center text-destructive">Error: {error}</TableCell>
+                                </TableRow>
+                            ) : departments.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center">No departments found</TableCell>
+                                </TableRow>
+                            ) : (
+                                departments.map((dept) => (
+                                    <TableRow key={dept.id}>
+                                        <TableCell className="font-medium">{dept.department_name}</TableCell>
+                                        <TableCell>{dept.department_code}</TableCell>
+                                        <TableCell>
+                                            {dept.hod 
+                                                ? `${dept.hod.first_name || ''} ${dept.hod.last_name || ''}`.trim() || dept.hod.email
+                                                : 'No HOD assigned'
+                                            }
+                                        </TableCell>
+                                        <TableCell>{new Date(dept.created_at).toLocaleDateString()}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon">
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
