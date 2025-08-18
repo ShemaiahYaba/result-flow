@@ -10,9 +10,12 @@ if (!supabaseUrl || !supabaseKey) {
 let _supabaseClient: ReturnType<typeof createBrowserClient> | undefined;
 
 // Create a singleton browser client for client-side usage
-export function createClient() {
+export function createClient(url?: string, key?: string) {
   if (!_supabaseClient) {
-    _supabaseClient = createBrowserClient(supabaseUrl!, supabaseKey!);
+    _supabaseClient = createBrowserClient(
+      url || supabaseUrl!, 
+      key || supabaseKey!
+    );
   }
   return _supabaseClient;
 }

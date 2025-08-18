@@ -95,15 +95,16 @@ export async function authMiddleware(
       return { success: false, error, status: 401 };
     }
 
-    // Fetch user role from users table with role join
-    const { data: userData, error: profileError } = await supabase
+    // Fetch user role from users table using service client
+    const serviceSupabase = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+    const { data: userData, error: profileError } = await serviceSupabase
       .from('users')
       .select(`
         user_entity_id,
         role_id
       `)
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (profileError || !userData) {
       const error = errorHandler.createError(
@@ -114,11 +115,11 @@ export async function authMiddleware(
     }
 
     // Fetch role separately to avoid join issues
-    const { data: roleData, error: roleError } = await supabase
+    const { data: roleData, error: roleError } = await serviceSupabase
       .from('roles')
       .select('role_name')
       .eq('id', userData.role_id)
-      .single();
+      .maybeSingle();
 
     if (roleError || !roleData) {
       const error = errorHandler.createError(

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
+import { createServiceClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 
 // ============================================================
@@ -28,6 +29,7 @@ export interface AuthenticatedUser {
   id: string;
   email?: string;
   role?: string;
+  user_entity_id?: string;
   aud: string;
   exp?: number;
 }
@@ -158,21 +160,49 @@ async function getAuthenticatedUser(req: NextRequest): Promise<AuthenticatedUser
     user = cookieUser;
   }
 
-  // Get user role from new users table structure
-  const { data: userData } = await supabase
+  // Get user data from users table using service client for auth queries
+  const serviceSupabase = createServiceClient();
+  
+  // Use maybeSingle() to handle potential duplicates gracefully
+  const { data: userData, error: userError } = await serviceSupabase
     .from('users')
     .select(`
       role_id,
-      user_entity_id,
-      roles!inner(role_name)
+      user_entity_id
     `)
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
+
+  if (userError) {
+    console.error('User lookup error:', userError);
+    throw new Error(`User lookup failed: ${userError.message}`);
+  }
+
+  if (!userData) {
+    throw new Error('User not found in system');
+  }
+
+  // Fetch role separately to avoid join issues
+  const { data: roleData, error: roleError } = await serviceSupabase
+    .from('roles')
+    .select('role_name')
+    .eq('id', userData.role_id)
+    .maybeSingle();
+
+  if (roleError) {
+    console.error('Role lookup error:', roleError);
+    throw new Error(`Role lookup failed: ${roleError.message}`);
+  }
+
+  if (!roleData) {
+    throw new Error('User role not found');
+  }
 
   return {
     id: user.id,
     email: user.email,
-    role: (userData?.roles as any)?.role_name,
+    role: roleData.role_name,
+    user_entity_id: userData.user_entity_id,
     aud: user.aud,
     exp: (user as any).exp || 0
   };

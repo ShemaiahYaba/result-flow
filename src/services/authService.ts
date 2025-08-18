@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabaseClient } from '@/utils/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
 // Types
@@ -27,10 +27,7 @@ export interface AuthCallbacks {
 }
 
 class AuthService {
-  private supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  private supabase = supabaseClient;
 
   private state: AuthState = {
     user: null,
@@ -187,6 +184,7 @@ class AuthService {
   // Fetch user profile from database
   private async fetchUserProfile(user: User): Promise<void> {
     try {
+      // Since no RLS is enabled, use direct database access with authenticated client
       const { data: userData, error } = await this.supabase
         .from('users')
         .select(`
@@ -194,22 +192,36 @@ class AuthService {
           role_id
         `)
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('User lookup error:', error);
+        throw new Error(`User lookup failed: ${error.message}`);
+      }
+      
+      if (!userData) {
+        throw new Error('User not found in system');
+      }
 
       // Fetch role separately to avoid join issues
       const { data: roleData, error: roleError } = await this.supabase
         .from('roles')
         .select('role_name')
         .eq('id', userData.role_id)
-        .single();
+        .maybeSingle();
 
-      if (roleError) throw roleError;
+      if (roleError) {
+        console.error('Role lookup error:', roleError);
+        throw new Error(`Role lookup failed: ${roleError.message}`);
+      }
+      
+      if (!roleData) {
+        throw new Error('User role not found');
+      }
 
       const profile = {
         id: user.id,
-        role: roleData?.role_name,
+        role: roleData.role_name,
         user_entity_id: userData.user_entity_id
       };
 
@@ -252,7 +264,7 @@ class AuthService {
 
   // Setup auth state listener
   private setupAuthListener(): void {
-    this.supabase.auth.onAuthStateChange(async (event, session) => {
+    this.supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       if (event === 'SIGNED_OUT') {
         this.updateState({
           user: null,
