@@ -185,22 +185,34 @@ class AuthService {
   private async fetchUserProfile(user: User): Promise<void> {
     try {
       // Since no RLS is enabled, use direct database access with authenticated client
+      // Use auth_user_id to link Supabase Auth user to users table
       const { data: userData, error } = await this.supabase
         .from('users')
         .select(`
+          id,
           user_entity_id,
           role_id
         `)
-        .eq('id', user.id)
+        .eq('auth_user_id', user.id)
         .maybeSingle();
 
       if (error) {
         console.error('User lookup error:', error);
+        console.error('Looking for user email:', user.email);
         throw new Error(`User lookup failed: ${error.message}`);
       }
       
       if (!userData) {
-        throw new Error('User not found in system');
+        console.error('No user data found for auth_user_id:', user.id, 'email:', user.email);
+        // Don't throw error to prevent recursive auth loops
+        // Instead, set a default state and let user re-authenticate manually
+        this.updateState({
+          user: null,
+          role: '',
+          isAuthenticated: false,
+          isLoading: false
+        });
+        return;
       }
 
       // Fetch role separately to avoid join issues

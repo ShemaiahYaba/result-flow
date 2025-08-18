@@ -163,14 +163,14 @@ async function getAuthenticatedUser(req: NextRequest): Promise<AuthenticatedUser
   // Get user data from users table using service client for auth queries
   const serviceSupabase = createServiceClient();
   
-  // Use maybeSingle() to handle potential duplicates gracefully
+  // Use auth_user_id to link Supabase Auth user to users table
   const { data: userData, error: userError } = await serviceSupabase
     .from('users')
     .select(`
       role_id,
       user_entity_id
     `)
-    .eq('id', user.id)
+    .eq('auth_user_id', user.id)
     .maybeSingle();
 
   if (userError) {

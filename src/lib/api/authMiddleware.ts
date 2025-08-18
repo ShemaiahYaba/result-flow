@@ -103,7 +103,7 @@ export async function authMiddleware(
         user_entity_id,
         role_id
       `)
-      .eq('id', user.id)
+      .eq('auth_user_id', user.id)
       .maybeSingle();
 
     if (profileError || !userData) {
