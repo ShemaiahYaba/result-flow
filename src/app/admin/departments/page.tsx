@@ -31,9 +31,9 @@ import { Label } from "@/components/ui/label"
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 
 const initialDepartments = [
-    { id: 1, name: 'Computer Science', hod: 'Dr. Chinedu Okoro' },
-    { id: 2, name: 'Mechanical Engineering', hod: 'Dr. Fatima Aliyu' },
-    { id: 3, name: 'Biochemistry', hod: 'Dr. Adebayo Ogunbiyi' },
+    { id: 1, name: 'Computer Science', hod: 'Dr. Chinedu Okoro', code: 'CSC' },
+    { id: 2, name: 'Mechanical Engineering', hod: 'Dr. Fatima Aliyu', code: 'MEE' },
+    { id: 3, name: 'Biochemistry', hod: 'Dr. Adebayo Ogunbiyi', code: 'BCH' },
 ];
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +43,7 @@ export default function DepartmentsPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newDeptName, setNewDeptName] = useState("");
     const [newDeptHod, setNewDeptHod] = useState("");
+    const [newDeptCode, setNewDeptCode] = useState("");
 
     const handleAddDepartment = () => {
         if (newDeptName && newDeptHod) {
@@ -51,12 +52,14 @@ export default function DepartmentsPage() {
                 {
                     id: departments.length + 1,
                     name: newDeptName,
-                    hod: newDeptHod
+                    hod: newDeptHod,
+                    code: newDeptCode
                 }
             ]);
             setIsDialogOpen(false);
             setNewDeptName("");
             setNewDeptHod("");
+            setNewDeptCode("");
         }
     }
 
@@ -84,6 +87,10 @@ export default function DepartmentsPage() {
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="name" className="text-right">Name</Label>
                                 <Input id="name" placeholder="e.g., Computer Science" className="col-span-3" value={newDeptName} onChange={(e) => setNewDeptName(e.target.value)} />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="department_code" className="text-right">Department Code</Label>
+                                <Input id="department_code" placeholder="e.g., CS" className="col-span-3" value={newDeptCode} onChange={(e) => setNewDeptCode(e.target.value)} />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="hod" className="text-right">HOD</Label>

@@ -104,13 +104,58 @@ export function errorToApiError(error: any): ApiError['error'] {
 // ============================================================
 
 async function getAuthenticatedUser(req: NextRequest): Promise<AuthenticatedUser> {
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  // First, try to get Bearer token from Authorization header
+  const authHeader = req.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
   
-  const { data: { user }, error } = await supabase.auth.getUser();
+  let supabase;
+  let user;
   
-  if (error || !user) {
-    throw new Error('Authentication required');
+  if (bearerToken) {
+    // Use Bearer token authentication
+    const { createClient } = await import('@supabase/supabase-js');
+    supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+    
+    // Verify the JWT token
+    const { data: { user: tokenUser }, error } = await supabase.auth.getUser(bearerToken);
+    
+    if (error || !tokenUser) {
+      console.error('Bearer token validation failed:', error?.message);
+      if (error?.message?.includes('refresh_token_not_found') || error?.message?.includes('Invalid Refresh Token')) {
+        throw new Error('Session expired. Please log in again.');
+      }
+      throw new Error('Authentication required');
+    }
+    
+    user = tokenUser;
+  } else {
+    // Fall back to cookie-based authentication
+    const cookieStore = cookies();
+    supabase = createClient(cookieStore);
+    
+    const { data: { user: cookieUser }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      if (error.message?.includes('refresh_token_not_found') || error.message?.includes('Invalid Refresh Token')) {
+        throw new Error('Session expired. Please log in again.');
+      }
+      throw new Error('Authentication required');
+    }
+    
+    if (!cookieUser) {
+      throw new Error('Authentication required');
+    }
+    
+    user = cookieUser;
   }
 
   // Get user role from profile
@@ -154,11 +199,30 @@ export function makeRoute<I = unknown, O = unknown>(config: HandlerConfig<I, O>)
       // Authentication check
       let user: AuthenticatedUser | null = null;
       if (config.requireAuth !== false) {
-        user = await getAuthenticatedUser(req);
+        try {
+          user = await getAuthenticatedUser(req);
+        } catch (authError: any) {
+          // Handle authentication errors specifically
+          if (authError.message?.includes('Session expired')) {
+            return NextResponse.json(
+              { ok: false, error: { code: 'SESSION_EXPIRED', message: 'Session expired. Please log in again.' } },
+              { status: 401 }
+            );
+          }
+          return NextResponse.json(
+            { ok: false, error: { code: 'AUTHENTICATION_ERROR', message: 'Authentication required' } },
+            { status: 401 }
+          );
+        }
         
-        // Role-based authorization
+        const supabase = createClient(cookies());
+        
+        // Check role permissions if required
         if (config.requiredRole && !checkRolePermission(user.role, config.requiredRole)) {
-          throw new Error('Insufficient permissions for this operation');
+          return NextResponse.json(
+            { ok: false, error: { code: 'AUTHORIZATION_ERROR', message: 'Insufficient permissions' } },
+            { status: 403 }
+          );
         }
       }
 
