@@ -15,55 +15,105 @@ This implementation provides JWT-based authentication for your Next.js + Supabas
   - Integrates with your existing error handling system
   - Supports role-based authorization
 
-### 2. Updated `src/app/admin/layout.tsx`
-- **Purpose**: Client-side route protection for admin pages
-- **Features**:
-  - Uses `supabase.auth.getSession()` for session verification
-  - Checks user role from `profiles` table
-  - Redirects unauthorized users to `/` or `/403`
-  - Listens to auth state changes with `onAuthStateChange`
+### Entity Tables  
+- **`students`**: Student profiles with `matric_number`, `email`, `department_id`
+- **`hods`**: HOD profiles with `staff_id`, `email`, `department_id`
+- **`admins`**: Admin profiles with `admin_id`, `email`, `university_id`
 
-### 3. `src/app/api/admin/users/route.ts`
-- **Purpose**: Example admin API route using the auth middleware
-- **Features**: Demonstrates proper JWT authentication integration
+## Updated Authentication Flow
 
-### 4. `src/app/403/page.tsx`
-- **Purpose**: Forbidden access error page
+1. **Login Request**: User provides ID type (`matric_number`, `staff_id`, `admin_id`) and password
+2. **ID Lookup**: `/api/lookup-email` queries appropriate entity table to get email and role
+3. **Supabase Auth**: Authenticate with email/password via Supabase
+4. **JWT Token**: Generate JWT with user info including `user_entity_id`
+5. **Route Protection**: Validate JWT and resolve entity data on protected routes
 
-### 5. `src/lib/api/enhancedRouteFactory.ts`
-- **Purpose**: Alternative route factory with built-in JWT auth
+## Key Components
 
-## Usage Examples
+### Updated Email Lookup API (`/api/lookup-email`)
+- Accepts `matric_number`, `staff_id`, or `admin_id`
+- Queries appropriate entity table (`students`, `hods`, `admins`)
+- Returns associated email and role
+- Handles role detection automatically
 
-### API Route with JWT Auth
+### Enhanced Route Factory (`routeFactory.ts`)
+- Updated `getAuthenticatedUser()` to query `users` table
+- Resolves `user_entity_id` to link authentication with business entities
+- Maintains role-based permissions
+- Supports Bearer tokens and cookies
 
+### University-Scoped Access
+- Admin operations scoped to their university
+- HOD operations scoped to their department's university
+- Student operations scoped to their department's university
+
+## Security Improvements
+
+- **Data Isolation**: University-specific data access
+- **Entity Separation**: Authentication IDs separate from business logic
+- **Role Resolution**: Dynamic role lookup via `users -> roles` relationship
+- **Multi-tenant Support**: University-scoped operations
+
+## Migration Changes
+
+### Email Lookup API
 ```typescript
-import { withAuth } from '@/lib/api/authMiddleware';
+// OLD: Single profiles table
+const { data } = await supabase
+  .from('profiles')
+  .select('email, role')
+  .eq(idType, idValue);
 
-export const GET = withAuth(
-  async (req) => {
-    // req.user and req.role are available
-    // Your handler logic here
-    return Response.json({ data: 'success' });
-  },
-  { requiredRole: 'admin' } // Only admins can access
-);
+// NEW: Entity-specific tables
+if (idType === 'matric_number') {
+  const { data } = await supabase
+    .from('students')
+    .select('email')
+    .eq('matric_number', idValue);
+  // role = 'student'
+}
 ```
 
-### Using Enhanced Route Factory
+### Route Authentication
+```typescript
+// OLD: Direct profile lookup
+const { data: user } = await supabase
+  .from('profiles')
+  .select('*')
+  .eq('id', userId);
+
+// NEW: Users table with entity resolution
+const { data: userData } = await supabase
+  .from('users')
+  .select('user_entity_id, roles(role_name)')
+  .eq('id', userId);
+```
+
+## Usage Example
 
 ```typescript
-import { makeEnhancedRoute } from '@/lib/api/enhancedRouteFactory';
-
-export const GET = makeEnhancedRoute({
-  method: 'GET',
-  auth: { requiredRole: 'admin' },
-  handle: async ({ user, role, input }) => {
-    // Your logic here
-    return { message: 'success' };
+// Protected API route with new schema
+export const GET = makeRoute({
+  requiredRole: 'admin',
+  handle: async ({ user, supabase }) => {
+    // Get admin's university for scoped access
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('university_id')
+      .eq('id', user.user_entity_id);
+    
+    // Query university-scoped data
+    return { universityId: adminData.university_id };
   }
 });
 ```
+
+## Benefits
+
+- **Scalability**: Multi-university support with data isolation
+- **Security**: Enhanced role-based access with university scoping
+- **Maintainability**: Clear separation between auth and business logic
+- **Flexibility**: Easy to add new roles and entities
 
 ### Client-Side API Calls
 

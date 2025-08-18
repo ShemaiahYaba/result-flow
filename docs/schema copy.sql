@@ -95,12 +95,9 @@ CREATE TABLE users (
     user_entity_id uuid NOT NULL, -- Points to students.id, hods.id, or admins.id
     is_active boolean DEFAULT true,
     last_login timestamptz,
-    created_at timestamptz DEFAULT now(),
+    created_at timestamptz DEFAULT now()
     
     -- Ensure email matches the entity's email
-    CONSTRAINT valid_user_entity CHECK (
-        (SELECT role_name FROM roles WHERE id = role_id) IN ('student', 'hod', 'admin')
-    )
 );
 
 -- ============================================================================
@@ -122,12 +119,14 @@ CREATE TABLE courses (
 
 CREATE TABLE academic_sessions (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_name text UNIQUE NOT NULL, -- e.g., "2023/2024"
+    university_id uuid NOT NULL REFERENCES universities(id) ON DELETE RESTRICT,
+    session_name text NOT NULL, -- e.g., "2023/2024"
     start_date date NOT NULL,
     end_date date NOT NULL,
     is_current boolean DEFAULT false,
     created_at timestamptz DEFAULT now(),
     
+    UNIQUE(university_id, session_name), -- Session names unique per university
     CONSTRAINT valid_session_dates CHECK (end_date > start_date)
 );
 
@@ -494,6 +493,7 @@ SELECT DISTINCT
     sem.id as semester_id,
     sess.session_name,
     sem.semester_name,
+    sem.semester_number,
     sess.session_name || ' - ' || sem.semester_name as display_name,
     h.id as hod_id
 FROM academic_semesters sem
@@ -567,15 +567,15 @@ CREATE TRIGGER ensure_single_current_semester_trigger
 CREATE OR REPLACE FUNCTION calculate_student_gpa()
 RETURNS TRIGGER AS $$
 DECLARE
-    student_id uuid;
-    semester_id uuid;
+    v_student_id uuid;
+    v_semester_id uuid;
     total_units integer;
     total_points numeric;
     semester_gpa numeric;
 BEGIN
     -- Get student and semester from enrollment chain
     SELECT sse.student_id, sse.semester_id 
-    INTO student_id, semester_id
+    INTO v_student_id, v_semester_id
     FROM student_course_enrollments sce
     JOIN student_semester_enrollments sse ON sce.student_semester_enrollment_id = sse.id
     WHERE sce.id = COALESCE(NEW.student_course_enrollment_id, OLD.student_course_enrollment_id);
@@ -598,8 +598,8 @@ BEGIN
     JOIN student_course_enrollments sce ON r.student_course_enrollment_id = sce.id
     JOIN student_semester_enrollments sse ON sce.student_semester_enrollment_id = sse.id
     JOIN courses c ON sce.course_id = c.id
-    WHERE sse.student_id = student_id 
-      AND sse.semester_id = semester_id
+    WHERE sse.student_id = v_student_id 
+      AND sse.semester_id = v_semester_id
       AND r.status = 'approved';
     
     -- Calculate GPA
@@ -610,7 +610,7 @@ BEGIN
     
     -- Update or insert semester summary
     INSERT INTO student_semester_summary (student_id, semester_id, total_units_attempted, semester_gpa)
-    VALUES (student_id, semester_id, total_units, semester_gpa)
+    VALUES (v_student_id, v_semester_id, total_units, semester_gpa)
     ON CONFLICT (student_id, semester_id) 
     DO UPDATE SET 
         total_units_attempted = EXCLUDED.total_units_attempted,
@@ -649,38 +649,204 @@ INSERT INTO departments (university_id, department_name, department_code) VALUES
 ((SELECT id FROM universities WHERE university_code = 'UI'), 'Computer Science', 'CSC'),
 ((SELECT id FROM universities WHERE university_code = 'OAU'), 'Mechanical Engineering', 'MEE');
 
--- Insert sample admins (UNIVERSITY-SCOPED)
+-- Insert sample admins (UNIVERSITY-SCOPED with unique IDs per university)
 INSERT INTO admins (first_name, middle_name, last_name, admin_id, email, phone_number, university_id) VALUES 
-('Shemaiah', 'Wambebe', 'Yaba-Shiaka', 'ADM001', 'admin@unilag.edu.ng', '+234-800-UNILAG', 
+('Shemaiah', 'Wambebe', 'Yaba-Shiaka', 'UNILAG-ADM001', 'admin@unilag.edu.ng', '+234-800-UNILAG', 
  (SELECT id FROM universities WHERE university_code = 'UNILAG')),
-('John', 'Adebayo', 'Ogundimu', 'ADM002', 'admin@ui.edu.ng', '+234-800-UI-ADMIN', 
- (SELECT id FROM universities WHERE university_code = 'UI'));
+('John', 'Adebayo', 'Ogundimu', 'UI-ADM001', 'admin@ui.edu.ng', '+234-800-UI-ADMIN', 
+ (SELECT id FROM universities WHERE university_code = 'UI')),
+('Dr. Funmi', 'Adebola', 'Akinwale', 'OAU-ADM001', 'admin@oau.edu.ng', '+234-800-OAU-ADMIN', 
+ (SELECT id FROM universities WHERE university_code = 'OAU'));
 
--- Insert sample HODs
+-- Insert sample HODs (University-specific staff IDs)
 INSERT INTO hods (first_name, middle_name, last_name, staff_id, email, phone_number, department_id) VALUES 
-('Dr. Adenike', 'Folake', 'Osofisan', 'HOD001', 'hod.csc@unilag.edu.ng', '+234-701-HOD-CSC',
+-- UNILAG HODs
+('Dr. Adenike', 'Folake', 'Osofisan', 'UNILAG-HOD001', 'hod.csc@unilag.edu.ng', '+234-701-HOD-CSC',
  (SELECT id FROM departments WHERE department_code = 'CSC' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
-('Prof. Babatunde', 'Olumide', 'Adewale', 'HOD002', 'hod.mth@unilag.edu.ng', '+234-701-HOD-MTH',
- (SELECT id FROM departments WHERE department_code = 'MTH' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG')));
+('Prof. Babatunde', 'Olumide', 'Adewale', 'UNILAG-HOD002', 'hod.mth@unilag.edu.ng', '+234-701-HOD-MTH',
+ (SELECT id FROM departments WHERE department_code = 'MTH' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+('Dr. Kehinde', 'Abiola', 'Ogunleye', 'UNILAG-HOD003', 'hod.phy@unilag.edu.ng', '+234-701-HOD-PHY',
+ (SELECT id FROM departments WHERE department_code = 'PHY' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+-- UI HODs
+('Prof. Adebayo', 'Kunle', 'Ogundipe', 'UI-HOD001', 'hod.csc@ui.edu.ng', '+234-702-HOD-CSC',
+ (SELECT id FROM departments WHERE department_code = 'CSC' AND university_id = (SELECT id FROM universities WHERE university_code = 'UI'))),
+-- OAU HODs
+('Dr. Olumide', 'Segun', 'Adeyemi', 'OAU-HOD001', 'hod.mee@oau.edu.ng', '+234-703-HOD-MEE',
+ (SELECT id FROM departments WHERE department_code = 'MEE' AND university_id = (SELECT id FROM universities WHERE university_code = 'OAU')));
 
--- Insert sample academic session and semesters
-INSERT INTO academic_sessions (session_name, start_date, end_date, is_current) VALUES 
-('2023/2024', '2023-09-01', '2024-06-30', false),
-('2024/2025', '2024-09-01', '2025-06-30', true);
+-- Insert sample academic sessions (University-specific)
+INSERT INTO academic_sessions (university_id, session_name, start_date, end_date, is_current) VALUES 
+-- UNILAG Sessions
+((SELECT id FROM universities WHERE university_code = 'UNILAG'), '2023/2024', '2023-09-01', '2024-06-30', false),
+((SELECT id FROM universities WHERE university_code = 'UNILAG'), '2024/2025', '2024-09-01', '2025-06-30', true),
+-- UI Sessions
+((SELECT id FROM universities WHERE university_code = 'UI'), '2023/2024', '2023-09-01', '2024-06-30', false),
+((SELECT id FROM universities WHERE university_code = 'UI'), '2024/2025', '2024-09-01', '2025-06-30', true),
+-- OAU Sessions
+((SELECT id FROM universities WHERE university_code = 'OAU'), '2023/2024', '2023-09-01', '2024-06-30', false),
+((SELECT id FROM universities WHERE university_code = 'OAU'), '2024/2025', '2024-09-01', '2025-06-30', true);
 
 INSERT INTO academic_semesters (session_id, semester_name, semester_number, start_date, end_date, is_current) VALUES 
-((SELECT id FROM academic_sessions WHERE session_name = '2023/2024'), '1st Semester', 1, '2023-09-01', '2024-01-31', false),
-((SELECT id FROM academic_sessions WHERE session_name = '2023/2024'), '2nd Semester', 2, '2024-02-01', '2024-06-30', false),
-((SELECT id FROM academic_sessions WHERE session_name = '2024/2025'), '1st Semester', 1, '2024-09-01', '2025-01-31', true);
+-- UNILAG Semesters
+((SELECT id FROM academic_sessions WHERE session_name = '2023/2024' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG')), '1st Semester', 1, '2023-09-01', '2024-01-31', false),
+((SELECT id FROM academic_sessions WHERE session_name = '2023/2024' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG')), '2nd Semester', 2, '2024-02-01', '2024-06-30', false),
+((SELECT id FROM academic_sessions WHERE session_name = '2024/2025' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG')), '1st Semester', 1, '2024-09-01', '2025-01-31', true),
+-- UI Semesters
+((SELECT id FROM academic_sessions WHERE session_name = '2023/2024' AND university_id = (SELECT id FROM universities WHERE university_code = 'UI')), '1st Semester', 1, '2023-09-01', '2024-01-31', false),
+((SELECT id FROM academic_sessions WHERE session_name = '2023/2024' AND university_id = (SELECT id FROM universities WHERE university_code = 'UI')), '2nd Semester', 2, '2024-02-01', '2024-06-30', false),
+((SELECT id FROM academic_sessions WHERE session_name = '2024/2025' AND university_id = (SELECT id FROM universities WHERE university_code = 'UI')), '1st Semester', 1, '2024-09-01', '2025-01-31', true),
+-- OAU Semesters
+((SELECT id FROM academic_sessions WHERE session_name = '2023/2024' AND university_id = (SELECT id FROM universities WHERE university_code = 'OAU')), '1st Semester', 1, '2023-09-01', '2024-01-31', false),
+((SELECT id FROM academic_sessions WHERE session_name = '2023/2024' AND university_id = (SELECT id FROM universities WHERE university_code = 'OAU')), '2nd Semester', 2, '2024-02-01', '2024-06-30', false),
+((SELECT id FROM academic_sessions WHERE session_name = '2024/2025' AND university_id = (SELECT id FROM universities WHERE university_code = 'OAU')), '1st Semester', 1, '2024-09-01', '2025-01-31', true);
 
--- Insert sample courses
+-- Insert sample courses (Multiple universities)
 INSERT INTO courses (course_code, course_title, course_unit, level, semester, department_id) VALUES 
-('CSC 411', 'Compiler Construction', 3, 400, 'first', 
+-- UNILAG CSC Courses
+('UNILAG-CSC411', 'Compiler Construction', 3, 400, 'first', 
  (SELECT id FROM departments WHERE department_code = 'CSC' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
-('CSC 421', 'Artificial Intelligence', 3, 400, 'second',
+('UNILAG-CSC421', 'Artificial Intelligence', 3, 400, 'second',
  (SELECT id FROM departments WHERE department_code = 'CSC' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
-('MTH 101', 'Elementary Mathematics I', 3, 100, 'first',
- (SELECT id FROM departments WHERE department_code = 'MTH' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG')));
+('UNILAG-CSC201', 'Data Structures', 3, 200, 'first',
+ (SELECT id FROM departments WHERE department_code = 'CSC' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+-- UNILAG MTH Courses
+('UNILAG-MTH101', 'Elementary Mathematics I', 3, 100, 'first',
+ (SELECT id FROM departments WHERE department_code = 'MTH' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+('UNILAG-MTH102', 'Elementary Mathematics II', 3, 100, 'second',
+ (SELECT id FROM departments WHERE department_code = 'MTH' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+-- UNILAG PHY Courses
+('UNILAG-PHY101', 'General Physics I', 3, 100, 'first',
+ (SELECT id FROM departments WHERE department_code = 'PHY' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+('UNILAG-PHY201', 'Classical Mechanics', 3, 200, 'first',
+ (SELECT id FROM departments WHERE department_code = 'PHY' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+-- UI CSC Courses
+('UI-CSC411', 'Compiler Design', 3, 400, 'first',
+ (SELECT id FROM departments WHERE department_code = 'CSC' AND university_id = (SELECT id FROM universities WHERE university_code = 'UI'))),
+('UI-CSC301', 'Database Systems', 3, 300, 'first',
+ (SELECT id FROM departments WHERE department_code = 'CSC' AND university_id = (SELECT id FROM universities WHERE university_code = 'UI'))),
+-- OAU MEE Courses
+('OAU-MEE301', 'Thermodynamics', 3, 300, 'first',
+ (SELECT id FROM departments WHERE department_code = 'MEE' AND university_id = (SELECT id FROM universities WHERE university_code = 'OAU'))),
+('OAU-MEE401', 'Machine Design', 3, 400, 'first',
+ (SELECT id FROM departments WHERE department_code = 'MEE' AND university_id = (SELECT id FROM universities WHERE university_code = 'OAU')));
+
+-- Insert sample students (Multiple universities)
+INSERT INTO students (first_name, middle_name, last_name, matric_number, email, phone_number, department_id) VALUES 
+-- UNILAG CSC Students
+('Adebayo', 'Kunle', 'Johnson', 'UNILAG/CSC/2021/001', 'adebayo.johnson@student.unilag.edu.ng', '+234-801-STUDENT1',
+ (SELECT id FROM departments WHERE department_code = 'CSC' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+('Fatima', 'Aisha', 'Ibrahim', 'UNILAG/CSC/2021/002', 'fatima.ibrahim@student.unilag.edu.ng', '+234-801-STUDENT2',
+ (SELECT id FROM departments WHERE department_code = 'CSC' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+('Chidi', 'Emmanuel', 'Okafor', 'UNILAG/CSC/2020/001', 'chidi.okafor@student.unilag.edu.ng', '+234-801-STUDENT3',
+ (SELECT id FROM departments WHERE department_code = 'CSC' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+-- UNILAG MTH Students
+('Blessing', 'Chioma', 'Eze', 'UNILAG/MTH/2022/001', 'blessing.eze@student.unilag.edu.ng', '+234-801-STUDENT4',
+ (SELECT id FROM departments WHERE department_code = 'MTH' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+('Olumide', 'Tunde', 'Adebisi', 'UNILAG/MTH/2021/001', 'olumide.adebisi@student.unilag.edu.ng', '+234-801-STUDENT5',
+ (SELECT id FROM departments WHERE department_code = 'MTH' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+-- UNILAG PHY Students
+('Kemi', 'Folake', 'Ogundipe', 'UNILAG/PHY/2021/001', 'kemi.ogundipe@student.unilag.edu.ng', '+234-801-STUDENT6',
+ (SELECT id FROM departments WHERE department_code = 'PHY' AND university_id = (SELECT id FROM universities WHERE university_code = 'UNILAG'))),
+-- UI CSC Students
+('Segun', 'Ayo', 'Adesanya', 'UI/CSC/2021/001', 'segun.adesanya@student.ui.edu.ng', '+234-802-STUDENT1',
+ (SELECT id FROM departments WHERE department_code = 'CSC' AND university_id = (SELECT id FROM universities WHERE university_code = 'UI'))),
+('Amina', 'Zainab', 'Bello', 'UI/CSC/2020/001', 'amina.bello@student.ui.edu.ng', '+234-802-STUDENT2',
+ (SELECT id FROM departments WHERE department_code = 'CSC' AND university_id = (SELECT id FROM universities WHERE university_code = 'UI'))),
+-- OAU MEE Students
+('Tolu', 'Seyi', 'Adeyemi', 'OAU/MEE/2021/001', 'tolu.adeyemi@student.oau.edu.ng', '+234-803-STUDENT1',
+ (SELECT id FROM departments WHERE department_code = 'MEE' AND university_id = (SELECT id FROM universities WHERE university_code = 'OAU'))),
+('Funmi', 'Bola', 'Ogunleye', 'OAU/MEE/2020/001', 'funmi.ogunleye@student.oau.edu.ng', '+234-803-STUDENT2',
+ (SELECT id FROM departments WHERE department_code = 'MEE' AND university_id = (SELECT id FROM universities WHERE university_code = 'OAU')));
+
+-- Insert sample user accounts for authentication
+INSERT INTO users (id, email, password_hash, role_id, user_entity_id) VALUES 
+-- Admin user accounts
+('11111111-1111-1111-1111-111111111111', 'admin@unilag.edu.ng', '$2b$10$hashedpassword1', 
+ (SELECT id FROM roles WHERE role_name = 'admin'),
+ (SELECT id FROM admins WHERE admin_id = 'UNILAG-ADM001')),
+('22222222-2222-2222-2222-222222222222', 'admin@ui.edu.ng', '$2b$10$hashedpassword2',
+ (SELECT id FROM roles WHERE role_name = 'admin'),
+ (SELECT id FROM admins WHERE admin_id = 'UI-ADM001')),
+('33333333-3333-3333-3333-333333333333', 'admin@oau.edu.ng', '$2b$10$hashedpassword3',
+ (SELECT id FROM roles WHERE role_name = 'admin'),
+ (SELECT id FROM admins WHERE admin_id = 'OAU-ADM001')),
+-- HOD user accounts
+('44444444-4444-4444-4444-444444444444', 'hod.csc@unilag.edu.ng', '$2b$10$hashedpassword4',
+ (SELECT id FROM roles WHERE role_name = 'hod'),
+ (SELECT id FROM hods WHERE staff_id = 'UNILAG-HOD001')),
+('55555555-5555-5555-5555-555555555555', 'hod.mth@unilag.edu.ng', '$2b$10$hashedpassword5',
+ (SELECT id FROM roles WHERE role_name = 'hod'),
+ (SELECT id FROM hods WHERE staff_id = 'UNILAG-HOD002')),
+('66666666-6666-6666-6666-666666666666', 'hod.csc@ui.edu.ng', '$2b$10$hashedpassword6',
+ (SELECT id FROM roles WHERE role_name = 'hod'),
+ (SELECT id FROM hods WHERE staff_id = 'UI-HOD001')),
+-- Student user accounts
+('77777777-7777-7777-7777-777777777777', 'adebayo.johnson@student.unilag.edu.ng', '$2b$10$hashedpassword7',
+ (SELECT id FROM roles WHERE role_name = 'student'),
+ (SELECT id FROM students WHERE matric_number = 'UNILAG/CSC/2021/001')),
+('88888888-8888-8888-8888-888888888888', 'fatima.ibrahim@student.unilag.edu.ng', '$2b$10$hashedpassword8',
+ (SELECT id FROM roles WHERE role_name = 'student'),
+ (SELECT id FROM students WHERE matric_number = 'UNILAG/CSC/2021/002')),
+('99999999-9999-9999-9999-999999999999', 'segun.adesanya@student.ui.edu.ng', '$2b$10$hashedpassword9',
+ (SELECT id FROM roles WHERE role_name = 'student'),
+ (SELECT id FROM students WHERE matric_number = 'UI/CSC/2021/001'));
+
+-- Insert sample student semester enrollments
+INSERT INTO student_semester_enrollments (student_id, semester_id, level, enrollment_status) VALUES 
+-- UNILAG Students - Current Semester (2024/2025 1st Semester)
+((SELECT id FROM students WHERE matric_number = 'UNILAG/CSC/2021/001'),
+ (SELECT id FROM academic_semesters WHERE semester_number = 1 AND session_id = 
+  (SELECT id FROM academic_sessions WHERE session_name = '2024/2025' AND university_id = 
+   (SELECT id FROM universities WHERE university_code = 'UNILAG'))), 400, 'registered'),
+((SELECT id FROM students WHERE matric_number = 'UNILAG/CSC/2021/002'),
+ (SELECT id FROM academic_semesters WHERE semester_number = 1 AND session_id = 
+  (SELECT id FROM academic_sessions WHERE session_name = '2024/2025' AND university_id = 
+   (SELECT id FROM universities WHERE university_code = 'UNILAG'))), 400, 'registered'),
+((SELECT id FROM students WHERE matric_number = 'UNILAG/CSC/2020/001'),
+ (SELECT id FROM academic_semesters WHERE semester_number = 1 AND session_id = 
+  (SELECT id FROM academic_sessions WHERE session_name = '2024/2025' AND university_id = 
+   (SELECT id FROM universities WHERE university_code = 'UNILAG'))), 500, 'registered'),
+-- UI Students
+((SELECT id FROM students WHERE matric_number = 'UI/CSC/2021/001'),
+ (SELECT id FROM academic_semesters WHERE semester_number = 1 AND session_id = 
+  (SELECT id FROM academic_sessions WHERE session_name = '2024/2025' AND university_id = 
+   (SELECT id FROM universities WHERE university_code = 'UI'))), 400, 'registered');
+
+-- Insert sample course enrollments
+INSERT INTO student_course_enrollments (student_semester_enrollment_id, course_id) VALUES 
+-- UNILAG CSC Student 1 enrollments
+((SELECT sse.id FROM student_semester_enrollments sse 
+  JOIN students s ON sse.student_id = s.id 
+  WHERE s.matric_number = 'UNILAG/CSC/2021/001' AND sse.level = 400),
+ (SELECT id FROM courses WHERE course_code = 'UNILAG-CSC411')),
+-- UNILAG CSC Student 2 enrollments  
+((SELECT sse.id FROM student_semester_enrollments sse 
+  JOIN students s ON sse.student_id = s.id 
+  WHERE s.matric_number = 'UNILAG/CSC/2021/002' AND sse.level = 400),
+ (SELECT id FROM courses WHERE course_code = 'UNILAG-CSC411')),
+-- UI CSC Student enrollments
+((SELECT sse.id FROM student_semester_enrollments sse 
+  JOIN students s ON sse.student_id = s.id 
+  WHERE s.matric_number = 'UI/CSC/2021/001' AND sse.level = 400),
+ (SELECT id FROM courses WHERE course_code = 'UI-CSC411'));
+
+-- Insert sample results
+INSERT INTO results_new (student_course_enrollment_id, score, grade, status) VALUES 
+-- UNILAG Student 1 results
+((SELECT sce.id FROM student_course_enrollments sce 
+  JOIN student_semester_enrollments sse ON sce.student_semester_enrollment_id = sse.id
+  JOIN students s ON sse.student_id = s.id 
+  WHERE s.matric_number = 'UNILAG/CSC/2021/001'), 85, 'A', 'approved'),
+-- UNILAG Student 2 results
+((SELECT sce.id FROM student_course_enrollments sce 
+  JOIN student_semester_enrollments sse ON sce.student_semester_enrollment_id = sse.id
+  JOIN students s ON sse.student_id = s.id 
+  WHERE s.matric_number = 'UNILAG/CSC/2021/002'), 78, 'B', 'approved'),
+-- UI Student results
+((SELECT sce.id FROM student_course_enrollments sce 
+  JOIN student_semester_enrollments sse ON sce.student_semester_enrollment_id = sse.id
+  JOIN students s ON sse.student_id = s.id 
+  WHERE s.matric_number = 'UI/CSC/2021/001'), 92, 'A', 'approved');
 
 -- ============================================================================
 -- ADMIN USER STORY QUERIES (EXAMPLES)
@@ -716,7 +882,7 @@ INSERT INTO courses (course_code, course_title, course_unit, level, semester, de
 
 -- Function to check if admin can manage a department
 CREATE OR REPLACE FUNCTION admin_can_manage_department(admin_uuid uuid, dept_uuid uuid)
-RETURNS boolean AS $
+RETURNS boolean AS $$
 BEGIN
     RETURN EXISTS (
         SELECT 1 FROM departments d
@@ -724,11 +890,11 @@ BEGIN
         WHERE a.id = admin_uuid AND d.id = dept_uuid
     );
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Function to check if admin can manage a HOD
 CREATE OR REPLACE FUNCTION admin_can_manage_hod(admin_uuid uuid, hod_uuid uuid)
-RETURNS boolean AS $
+RETURNS boolean AS $$
 BEGIN
     RETURN EXISTS (
         SELECT 1 FROM hods h
@@ -737,7 +903,7 @@ BEGIN
         WHERE a.id = admin_uuid AND h.id = hod_uuid
     );
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Function to get departments available for HOD assignment (no existing HOD)
 CREATE OR REPLACE FUNCTION get_available_departments_for_hod(admin_uuid uuid)
@@ -745,7 +911,7 @@ RETURNS TABLE (
     department_id uuid,
     department_name text,
     department_code text
-) AS $
+) AS $$
 BEGIN
     RETURN QUERY
     SELECT d.id, d.department_name, d.department_code
@@ -756,7 +922,7 @@ BEGIN
       AND h.id IS NULL -- No active HOD assigned
     ORDER BY d.department_name;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- ============================================================================
 -- CRITICAL FIXES SUMMARY

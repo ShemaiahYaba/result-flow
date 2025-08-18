@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '../../../utils/supabase/server';
 
-const ALLOWED_ID_TYPES = ['matric_number', 'staff_id'] as const;
+const ALLOWED_ID_TYPES = ['matric_number', 'staff_id', 'admin_id'] as const;
 type IdType = typeof ALLOWED_ID_TYPES[number];
 
 export async function POST(req: NextRequest) {
@@ -61,17 +61,52 @@ export async function POST(req: NextRequest) {
     }
     
     // Log the query we're about to execute
-    console.log('Executing query:');
-    console.log('- Table: profiles');
-    console.log('- Select: email');
-    console.log('- Where:', `${idType} = '${idValue}'`);
+    console.log('Executing query for new schema:');
+    console.log('- Looking up:', `${idType} = '${idValue}'`);
     
-    // Query profiles table
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('email, role')
-      .eq(idType, idValue)
-      .maybeSingle();
+    let data = null;
+    let error = null;
+    
+    // Query appropriate entity table based on ID type
+    if (idType === 'matric_number') {
+      console.log('- Querying students table for matric_number');
+      const result = await supabase
+        .from('students')
+        .select('email')
+        .eq('matric_number', idValue)
+        .maybeSingle();
+      
+      if (result.data) {
+        data = { email: result.data.email, role: 'student' };
+      }
+      error = result.error;
+      
+    } else if (idType === 'staff_id') {
+      console.log('- Querying HODs table for staff_id');
+      const hodResult = await supabase
+        .from('hods')
+        .select('email')
+        .eq('staff_id', idValue)
+        .maybeSingle();
+      
+      if (hodResult.data) {
+        data = { email: hodResult.data.email, role: 'hod' };
+      }
+      error = hodResult.error;
+      
+    } else if (idType === 'admin_id') {
+      console.log('- Querying admins table for admin_id');
+      const adminResult = await supabase
+        .from('admins')
+        .select('email')
+        .eq('admin_id', idValue)
+        .maybeSingle();
+      
+      if (adminResult.data) {
+        data = { email: adminResult.data.email, role: 'admin' };
+      }
+      error = adminResult.error;
+    }
     
     console.log('Query result:');
     console.log('- Data:', data);

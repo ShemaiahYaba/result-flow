@@ -1,18 +1,19 @@
 import { z } from 'zod';
 import { makeRoute } from '@/lib/api/routeFactory';
 
-// Schema for HOD with profile and department data
+// Schema for HOD with new schema structure
 const HodSchema = z.object({
   id: z.string().uuid(),
-  profile_id: z.string().uuid(),
+  staff_id: z.string(),
   department_id: z.string().uuid(),
   university_id: z.string().uuid(),
   created_at: z.string(),
-  // Profile data
-  first_name: z.string().nullable(),
-  last_name: z.string().nullable(),
+  // Personal data
+  first_name: z.string(),
+  middle_name: z.string().nullable(),
+  last_name: z.string(),
   email: z.string().email(),
-  staff_id: z.string(),
+  phone_number: z.string().nullable(),
   // Department data
   department_name: z.string(),
   department_code: z.string(),
@@ -27,29 +28,49 @@ export const GET = makeRoute({
   method: 'GET',
   requiredRole: 'admin',
   output: HodsResponseSchema,
-  handle: async ({ supabase }) => {
-    // Fetch HODs with their profile and department information
+  handle: async ({ supabase, user }) => {
+    // Get admin's university to filter HODs
+    const { data: userData } = await supabase
+      .from('users')
+      .select('user_entity_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData) {
+      throw new Error('User not found');
+    }
+
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('university_id')
+      .eq('id', userData.user_entity_id)
+      .single();
+
+    if (!adminData) {
+      throw new Error('Admin not found');
+    }
+
+    // Fetch HODs with their department information for admin's university
     const { data: hodsData, error } = await supabase
       .from('hods')
       .select(`
         id,
-        profile_id,
+        staff_id,
+        first_name,
+        middle_name,
+        last_name,
+        email,
+        phone_number,
         department_id,
         university_id,
         created_at,
-        profiles!hods_profile_id_fkey (
-          id,
-          first_name,
-          last_name,
-          email,
-          staff_id
-        ),
         departments!hods_department_id_fkey (
           id,
           department_name,
           department_code
         )
-      `);
+      `)
+      .eq('university_id', adminData.university_id);
 
     if (error) {
       throw new Error(`Failed to fetch HODs: ${error.message}`);
@@ -61,25 +82,26 @@ export const GET = makeRoute({
 
     // Transform the data to match frontend expectations
     const transformedData = hodsData.map((hod: any) => {
-      const profile = hod.profiles;
       const department = hod.departments;
       
       // Construct full name
-      const firstName = profile?.first_name || '';
-      const lastName = profile?.last_name || '';
-      const fullName = `${firstName} ${lastName}`.trim() || profile?.email || 'Unknown';
+      const firstName = hod.first_name || '';
+      const middleName = hod.middle_name ? ` ${hod.middle_name}` : '';
+      const lastName = hod.last_name || '';
+      const fullName = `${firstName}${middleName} ${lastName}`.trim() || hod.email || 'Unknown';
 
       return {
         id: hod.id,
-        profile_id: hod.profile_id,
+        staff_id: hod.staff_id,
         department_id: hod.department_id,
         university_id: hod.university_id,
         created_at: hod.created_at,
-        // Profile fields
-        first_name: profile?.first_name,
-        last_name: profile?.last_name,
-        email: profile?.email || '',
-        staff_id: profile?.staff_id || '',
+        // Personal fields
+        first_name: hod.first_name,
+        middle_name: hod.middle_name,
+        last_name: hod.last_name,
+        email: hod.email,
+        phone_number: hod.phone_number,
         // Department fields
         department_name: department?.department_name || '',
         department_code: department?.department_code || '',

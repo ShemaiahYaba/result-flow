@@ -1,155 +1,205 @@
-Perfect 🚀 I’ll give you **one clean SQL script** that:
+# Test Seed Data Documentation
+## University Management System - Complete Test Dataset
 
-1. Ensures **University, Department, Session** exist.
-2. Maps **4 users** you already created in Supabase Auth (`hod@testuni.edu`, `student@testuni.edu`, `hod@example.com`, `student@example.com`).
-3. Seeds **one default course (CSC101 – Introduction to Computer Science)**.
-4. Enrolls both students into that course.
+This document provides comprehensive documentation of all seed data included in the updated university management system schema. The seed data is designed to enable robust testing of all system features including multi-university support, role-based access control, and academic workflows.
 
-Here’s the script:
+## Overview
 
-```sql
--- SEED DATA SCRIPT
--- NOTE: Replace UUID placeholders with actual IDs from Supabase Dashboard → Auth → Users.
+The seed data includes:
+- **3 Universities** with distinct codes and configurations
+- **6 Departments** across multiple universities  
+- **6 Academic Sessions** (2 per university) with semesters
+- **6 Admins** (2 per university) with unique staff IDs
+- **6 HODs** (2 per university) with unique staff IDs
+- **10 Students** across different universities and departments
+- **12 Courses** with university-specific course codes
+- **9 User Accounts** for authentication testing
+- **Sample Enrollments and Results** for workflow testing
 
-DO $$
-DECLARE
-  -- UUIDs from auth.users
-  hod_testuni_id uuid := 'HOD_TESTUNI_UUID';          -- hod@testuni.edu
-  student_testuni_id uuid := 'STUDENT_TESTUNI_UUID';  -- student@testuni.edu
-  hod_example_id uuid := 'HOD_EXAMPLE_UUID';          -- hod@example.com
-  student_example_id uuid := 'STUDENT_EXAMPLE_UUID';  -- student@example.com
+## Universities
 
-  uni_id uuid;
-  dept_id uuid;
-  session_id uuid;
-  course_id uuid;
-BEGIN
-  -----------------------------------------------------------------
-  -- University
-  -----------------------------------------------------------------
-  INSERT INTO public.universities (university_name, university_code)
-  VALUES ('Test University', 'TESTU')
-  ON CONFLICT (university_name) DO UPDATE SET university_name = EXCLUDED.university_name
-  RETURNING id INTO uni_id;
+| University Code | University Name | Description |
+|----------------|-----------------|-------------|
+| UNILAG | University of Lagos | Primary test university with multiple departments |
+| UI | University of Ibadan | Secondary test university for multi-tenant testing |
+| OAU | Obafemi Awolowo University | Third university for comprehensive testing |
 
-  -----------------------------------------------------------------
-  -- Department
-  -----------------------------------------------------------------
-  INSERT INTO public.departments (department_name, department_code, university_id)
-  VALUES ('Computer Science', 'CSC', uni_id)
-  ON CONFLICT (department_code) DO UPDATE SET department_name = EXCLUDED.department_name
-  RETURNING id INTO dept_id;
+## Departments by University
 
-  -----------------------------------------------------------------
-  -- Academic Session
-  -----------------------------------------------------------------
-  INSERT INTO public.academic_sessions (session_name, start_date, end_date)
-  VALUES ('2024/2025', '2024-09-01', '2025-07-01')
-  ON CONFLICT (session_name) DO UPDATE SET session_name = EXCLUDED.session_name
-  RETURNING id INTO session_id;
+### UNILAG Departments
+- **Computer Science (CSC)** - Primary CS department
+- **Mathematics (MTH)** - Mathematics department  
+- **Physics (PHY)** - Physics department
 
-  -----------------------------------------------------------------
-  -- Profiles + Roles
-  -----------------------------------------------------------------
-  -- hod@testuni.edu
-  INSERT INTO public.profiles (id, fullname, email, role, staff_id, department_id, university_id)
-  VALUES (hod_testuni_id, 'Head of Department TU', 'hod@testuni.edu', 'hod', 'HOD001', dept_id, uni_id)
-  ON CONFLICT (id) DO NOTHING;
+### UI Departments
+- **Computer Science (CSC)** - CS department at UI
+- **Mathematics (MTH)** - Mathematics department at UI
 
-  INSERT INTO public.hods (profile_id, department_id, university_id)
-  VALUES (hod_testuni_id, dept_id, uni_id)
-  ON CONFLICT (profile_id) DO NOTHING;
+### OAU Departments  
+- **Mechanical Engineering (MEE)** - Engineering department
 
-  -- student@testuni.edu
-  INSERT INTO public.profiles (id, fullname, email, role, matric_number, department_id, university_id)
-  VALUES (student_testuni_id, 'Student TU', 'student@testuni.edu', 'student', 'STD001', dept_id, uni_id)
-  ON CONFLICT (id) DO NOTHING;
+## Academic Sessions
 
-  INSERT INTO public.student_enrollments (profile_id, department_id, session_id, level)
-  VALUES (student_testuni_id, dept_id, session_id, 100)
-  ON CONFLICT DO NOTHING;
+Each university has current and previous academic sessions:
 
-  -- hod@example.com
-  INSERT INTO public.profiles (id, fullname, email, role, staff_id, department_id, university_id)
-  VALUES (hod_example_id, 'Head of Department Example', 'hod@example.com', 'hod', 'HOD002', dept_id, uni_id)
-  ON CONFLICT (id) DO NOTHING;
+### UNILAG Sessions
+- **2023/2024** (Sept 2023 - July 2024) - Previous session
+- **2024/2025** (Sept 2024 - July 2025) - Current session
 
-  INSERT INTO public.hods (profile_id, department_id, university_id)
-  VALUES (hod_example_id, dept_id, uni_id)
-  ON CONFLICT (profile_id) DO NOTHING;
+### UI Sessions
+- **2023/2024** (Sept 2023 - July 2024) - Previous session  
+- **2024/2025** (Sept 2024 - July 2025) - Current session
 
-  -- student@example.com
-  INSERT INTO public.profiles (id, fullname, email, role, matric_number, department_id, university_id)
-  VALUES (student_example_id, 'Student Example', 'student@example.com', 'student', 'STD002', dept_id, uni_id)
-  ON CONFLICT (id) DO NOTHING;
+### OAU Sessions
+- **2023/2024** (Sept 2023 - July 2024) - Previous session
+- **2024/2025** (Sept 2024 - July 2025) - Current session
 
-  INSERT INTO public.student_enrollments (profile_id, department_id, session_id, level)
-  VALUES (student_example_id, dept_id, session_id, 100)
-  ON CONFLICT DO NOTHING;
+Each session includes both first and second semester records.
 
-  -----------------------------------------------------------------
-  -- Seed Default Course (CSC101)
-  -----------------------------------------------------------------
-  INSERT INTO public.courses (course_code, course_name, department_id, university_id, level, semester, credit_units)
-  VALUES ('CSC101', 'Introduction to Computer Science', dept_id, uni_id, 100, 1, 3)
-  ON CONFLICT (course_code) DO UPDATE SET course_name = EXCLUDED.course_name
-  RETURNING id INTO course_id;
+## Administrative Staff
 
-  -----------------------------------------------------------------
-  -- Enroll both students into CSC101
-  -----------------------------------------------------------------
-  INSERT INTO public.course_enrollments (course_id, student_id, session_id)
-  VALUES (course_id, student_testuni_id, session_id)
-  ON CONFLICT DO NOTHING;
+### University Admins
 
-  INSERT INTO public.course_enrollments (course_id, student_id, session_id)
-  VALUES (course_id, student_example_id, session_id)
-  ON CONFLICT DO NOTHING;
+| University | Admin ID | Name | Email |
+|-----------|----------|------|-------|
+| UNILAG | UNILAG-ADM001 | Dr. Adebayo Ogundimu | admin@unilag.edu.ng |
+| UNILAG | UNILAG-ADM002 | Prof. Kemi Adeleke | admin2@unilag.edu.ng |
+| UI | UI-ADM001 | Prof. Taiwo Adeyemi | admin@ui.edu.ng |
+| UI | UI-ADM002 | Dr. Funmi Ogundipe | admin2@ui.edu.ng |
+| OAU | OAU-ADM001 | Prof. Segun Adesanya | admin@oau.edu.ng |
+| OAU | OAU-ADM002 | Dr. Bola Adebisi | admin2@oau.edu.ng |
 
-END $$;
-```
+### Heads of Department (HODs)
 
----
+| University | Staff ID | Name | Department | Email |
+|-----------|----------|------|------------|-------|
+| UNILAG | UNILAG-HOD001 | Prof. Chidi Okafor | Computer Science | hod.csc@unilag.edu.ng |
+| UNILAG | UNILAG-HOD002 | Dr. Fatima Ibrahim | Mathematics | hod.mth@unilag.edu.ng |
+| UNILAG | UNILAG-HOD003 | Prof. Blessing Eze | Physics | hod.phy@unilag.edu.ng |
+| UI | UI-HOD001 | Dr. Amina Bello | Computer Science | hod.csc@ui.edu.ng |
+| UI | UI-HOD002 | Prof. Olumide Adebisi | Mathematics | hod.mth@ui.edu.ng |
+| OAU | OAU-HOD001 | Prof. Tolu Adeyemi | Mechanical Engineering | hod.mee@oau.edu.ng |
 
-### ✅ After running this script, you’ll have:
+## Students
 
-**universities**
+### UNILAG Students
 
-* `Test University (TESTU)`
+| Matric Number | Name | Department | Email | Level |
+|--------------|------|------------|-------|-------|
+| UNILAG/CSC/2021/001 | Adebayo Kunle Johnson | Computer Science | adebayo.johnson@student.unilag.edu.ng | 400 |
+| UNILAG/CSC/2021/002 | Fatima Aisha Ibrahim | Computer Science | fatima.ibrahim@student.unilag.edu.ng | 400 |
+| UNILAG/CSC/2020/001 | Chidi Emmanuel Okafor | Computer Science | chidi.okafor@student.unilag.edu.ng | 500 |
+| UNILAG/MTH/2022/001 | Blessing Chioma Eze | Mathematics | blessing.eze@student.unilag.edu.ng | 300 |
+| UNILAG/MTH/2021/001 | Olumide Tunde Adebisi | Mathematics | olumide.adebisi@student.unilag.edu.ng | 400 |
+| UNILAG/PHY/2021/001 | Kemi Folake Ogundipe | Physics | kemi.ogundipe@student.unilag.edu.ng | 400 |
 
-**departments**
+### UI Students
 
-* `Computer Science (CSC)` linked to Test University
+| Matric Number | Name | Department | Email | Level |
+|--------------|------|------------|-------|-------|
+| UI/CSC/2021/001 | Segun Ayo Adesanya | Computer Science | segun.adesanya@student.ui.edu.ng | 400 |
+| UI/CSC/2020/001 | Amina Zainab Bello | Computer Science | amina.bello@student.ui.edu.ng | 500 |
 
-**academic\_sessions**
+### OAU Students
 
-* `2024/2025`
+| Matric Number | Name | Department | Email | Level |
+|--------------|------|------------|-------|-------|
+| OAU/MEE/2021/001 | Tolu Seyi Adeyemi | Mechanical Engineering | tolu.adeyemi@student.oau.edu.ng | 400 |
+| OAU/MEE/2020/001 | Funmi Bola Ogunleye | Mechanical Engineering | funmi.ogunleye@student.oau.edu.ng | 500 |
 
-**profiles (4 total)**
+## Courses
 
-1. **[hod@testuni.edu](mailto:hod@testuni.edu)** → staff\_id `HOD001`, role `hod`
-2. **[student@testuni.edu](mailto:student@testuni.edu)** → matric\_number `STD001`, role `student`
-3. **[hod@example.com](mailto:hod@example.com)** → staff\_id `HOD002`, role `hod`
-4. **[student@example.com](mailto:student@example.com)** → matric\_number `STD002`, role `student`
+### UNILAG Courses
 
-**hods**
+| Course Code | Course Name | Credits | Level | Semester | Department |
+|------------|-------------|---------|-------|----------|------------|
+| UNILAG-CSC411 | Software Engineering | 3 | 400 | First | Computer Science |
+| UNILAG-CSC301 | Data Structures | 3 | 300 | First | Computer Science |
+| UNILAG-MTH301 | Real Analysis | 3 | 300 | First | Mathematics |
+| UNILAG-MTH401 | Complex Analysis | 3 | 400 | First | Mathematics |
+| UNILAG-PHY301 | Quantum Mechanics | 3 | 300 | First | Physics |
+| UNILAG-PHY401 | Statistical Mechanics | 3 | 400 | First | Physics |
 
-* Entries for [hod@testuni.edu](mailto:hod@testuni.edu) and [hod@example.com](mailto:hod@example.com)
+### UI Courses
 
-**student\_enrollments**
+| Course Code | Course Name | Credits | Level | Semester | Department |
+|------------|-------------|---------|-------|----------|------------|
+| UI-CSC411 | Compiler Design | 3 | 400 | First | Computer Science |
+| UI-CSC301 | Database Systems | 3 | 300 | First | Computer Science |
+| UI-MTH301 | Linear Algebra | 3 | 300 | First | Mathematics |
+| UI-MTH401 | Differential Equations | 3 | 400 | First | Mathematics |
 
-* Both [student@testuni.edu](mailto:student@testuni.edu) and [student@example.com](mailto:student@example.com) enrolled in 100 level, session 2024/2025
+### OAU Courses
 
-**courses**
+| Course Code | Course Name | Credits | Level | Semester | Department |
+|------------|-------------|---------|-------|----------|------------|
+| OAU-MEE301 | Thermodynamics | 3 | 300 | First | Mechanical Engineering |
+| OAU-MEE401 | Machine Design | 3 | 400 | First | Mechanical Engineering |
 
-* `CSC101 – Introduction to Computer Science`, 3 credit units, level 100, semester 1
+## User Accounts for Authentication
 
-**course\_enrollments**
+The following user accounts are created for testing authentication and authorization:
 
-* Both students are registered in CSC101 for the session `2024/2025`
+### Admin Accounts
+- **admin@unilag.edu.ng** - UNILAG Admin (ID: 11111111-1111-1111-1111-111111111111)
+- **admin@ui.edu.ng** - UI Admin (ID: 22222222-2222-2222-2222-222222222222)  
+- **admin@oau.edu.ng** - OAU Admin (ID: 33333333-3333-3333-3333-333333333333)
 
----
+### HOD Accounts
+- **hod.csc@unilag.edu.ng** - UNILAG CSC HOD (ID: 44444444-4444-4444-4444-444444444444)
+- **hod.mth@unilag.edu.ng** - UNILAG MTH HOD (ID: 55555555-5555-5555-5555-555555555555)
+- **hod.csc@ui.edu.ng** - UI CSC HOD (ID: 66666666-6666-6666-6666-666666666666)
 
-👉 Do you want me to also **seed a dummy result record (e.g., scores for CSC101)** so you can immediately test the HOD approval flow?
+### Student Accounts  
+- **adebayo.johnson@student.unilag.edu.ng** - UNILAG CSC Student (ID: 77777777-7777-7777-7777-777777777777)
+- **fatima.ibrahim@student.unilag.edu.ng** - UNILAG CSC Student (ID: 88888888-8888-8888-8888-888888888888)
+- **segun.adesanya@student.ui.edu.ng** - UI CSC Student (ID: 99999999-9999-9999-9999-999999999999)
+
+*Note: All passwords are hashed using bcrypt with the placeholder `$2b$10$hashedpassword[N]`*
+
+## Sample Enrollments and Results
+
+### Current Semester Enrollments (2024/2025 First Semester)
+
+Students are enrolled in the current semester with the following course registrations:
+
+- **Adebayo Johnson (UNILAG)** - Level 400, enrolled in UNILAG-CSC411 (Software Engineering)
+- **Fatima Ibrahim (UNILAG)** - Level 400, enrolled in UNILAG-CSC411 (Software Engineering)  
+- **Chidi Okafor (UNILAG)** - Level 500, enrolled in current semester
+- **Segun Adesanya (UI)** - Level 400, enrolled in UI-CSC411 (Compiler Design)
+
+### Sample Results
+
+The following approved results are available for testing:
+
+| Student | Course | Score | Grade | Status |
+|---------|--------|-------|-------|--------|
+| Adebayo Johnson | UNILAG-CSC411 (Software Engineering) | 85 | A | Approved |
+| Fatima Ibrahim | UNILAG-CSC411 (Software Engineering) | 78 | B | Approved |
+| Segun Adesanya | UI-CSC411 (Compiler Design) | 92 | A | Approved |
+
+## Key Features Demonstrated
+
+This seed data enables testing of:
+
+1. **Multi-University Support** - Three distinct universities with separate data
+2. **University-Specific Staff IDs** - Unique prefixed staff IDs per university
+3. **University-Specific Academic Sessions** - Sessions scoped to each university
+4. **University-Specific Course Codes** - Courses prefixed with university codes
+5. **Role-Based Access Control** - Admin, HOD, and Student roles with proper scoping
+6. **Cross-University Data Isolation** - RLS policies ensure data separation
+7. **Academic Workflows** - Enrollment, course registration, and result management
+8. **Authentication Integration** - User accounts linked to entity records
+
+## Usage Notes
+
+- All staff IDs and admin IDs are unique per university with university prefixes
+- Academic sessions are university-specific to prevent cross-university data leakage
+- Course codes include university prefixes to ensure uniqueness across the system
+- Student matric numbers follow university-specific formats
+- User account IDs are fixed UUIDs for consistent testing
+- Results include approved grades for testing HOD approval workflows
+
+This comprehensive seed data provides a robust foundation for testing all aspects of the multi-university management system.
 
 

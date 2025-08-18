@@ -13,37 +13,82 @@ export const GET = makeRoute({
   method: 'GET',
   requiredRole: 'admin',
   output: DashboardStatsSchema,
-  handle: async ({ supabase }) => {
+  handle: async ({ supabase, user }) => {
     try {
-      // Fetch total HODs count
+      // Get admin's university to filter data
+      const { data: userData } = await supabase
+        .from('users')
+        .select('user_entity_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!userData) {
+        throw new Error('User not found');
+      }
+
+      const { data: adminData } = await supabase
+        .from('admins')
+        .select('university_id')
+        .eq('id', userData.user_entity_id)
+        .single();
+
+      if (!adminData) {
+        throw new Error('Admin not found');
+      }
+
+      // Fetch total HODs count for admin's university
       const { count: hodsCount, error: hodsError } = await supabase
         .from('hods')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('university_id', adminData.university_id);
 
       if (hodsError) {
         throw new Error(`Failed to fetch HODs count: ${hodsError.message}`);
       }
 
-      // Fetch departments count
+      // Fetch departments count for admin's university
       const { count: departmentsCount, error: deptError } = await supabase
         .from('departments')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('university_id', adminData.university_id);
 
       if (deptError) {
         throw new Error(`Failed to fetch departments count: ${deptError.message}`);
       }
 
-      // Fetch courses count (assuming courses table exists)
+      // Fetch courses count for admin's university
       const { count: coursesCount, error: coursesError } = await supabase
         .from('courses')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('university_id', adminData.university_id);
 
-      // If courses table doesn't exist, default to 0
       const totalCourses = coursesError ? 0 : (coursesCount || 0);
 
-      // For pending approvals, we'll need to check what table/logic applies
-      // For now, using a placeholder - this should be updated based on your approval system
-      const pendingApprovals = 0; // TODO: Implement based on your approval workflow
+      // Fetch pending results approvals for admin's university
+      // First get course IDs for the university
+      const { data: universityCourses } = await supabase
+        .from('courses')
+        .select('id')
+        .eq('university_id', adminData.university_id);
+
+      const courseIds = universityCourses?.map(course => course.id) || [];
+
+      // Then get enrollment IDs for those courses
+      const { data: enrollments } = await supabase
+        .from('student_course_enrollments')
+        .select('id')
+        .in('course_id', courseIds);
+
+      const enrollmentIds = enrollments?.map(enrollment => enrollment.id) || [];
+
+      // Finally count pending results for those enrollments
+      const { count: pendingCount, error: pendingError } = await supabase
+        .from('results_new')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending')
+        .in('student_course_enrollment_id', enrollmentIds);
+
+      const pendingApprovals = pendingError ? 0 : (pendingCount || 0);
 
       return {
         totalHods: hodsCount || 0,

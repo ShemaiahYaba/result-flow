@@ -158,17 +158,21 @@ async function getAuthenticatedUser(req: NextRequest): Promise<AuthenticatedUser
     user = cookieUser;
   }
 
-  // Get user role from profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
+  // Get user role from new users table structure
+  const { data: userData } = await supabase
+    .from('users')
+    .select(`
+      role_id,
+      user_entity_id,
+      roles!inner(role_name)
+    `)
     .eq('id', user.id)
     .single();
 
   return {
     id: user.id,
     email: user.email,
-    role: profile?.role,
+    role: (userData?.roles as any)?.role_name,
     aud: user.aud,
     exp: (user as any).exp || 0
   };

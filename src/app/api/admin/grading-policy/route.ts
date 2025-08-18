@@ -1,5 +1,8 @@
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { makeRoute } from '@/lib/api/routeFactory';
+import { createClient, createServiceClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 
 // Schema for grading policy
 const GradingPolicySchema = z.object({
@@ -33,10 +36,12 @@ export const GET = makeRoute({
   requiredRole: 'admin',
   output: GradingPoliciesResponseSchema,
   handle: async ({ supabase }) => {
-    const { data, error } = await supabase
+    // Use service client for admin operations to bypass RLS
+    const serviceClient = createServiceClient();
+    const { data, error } = await serviceClient
       .from('grading_policies')
       .select('*')
-      .order('min_score', { ascending: false });
+      .order('min_score', { ascending: true });
 
     if (error) {
       throw new Error(`Failed to fetch grading policies: ${error.message}`);
@@ -53,22 +58,25 @@ export const POST = makeRoute({
   input: GradingPolicyInputSchema,
   output: GradingPolicySchema,
   handle: async ({ supabase, input }) => {
-    // Check for overlapping score ranges
-    const { data: existing, error: checkError } = await supabase
+    // Use service client for admin operations to bypass RLS
+    const serviceClient = createServiceClient();
+    
+    // Check for overlapping ranges
+    const { data: overlappingPolicies, error: overlapError } = await serviceClient
       .from('grading_policies')
       .select('*')
       .or(`and(min_score.lte.${input.max_score},max_score.gte.${input.min_score})`);
 
-    if (checkError) {
-      throw new Error(`Failed to check for overlapping ranges: ${checkError.message}`);
+    if (overlapError && overlapError.code !== 'PGRST116') { // PGRST116 = no rows returned
+      throw new Error(`Failed to check for overlapping ranges: ${overlapError.message}`);
     }
 
-    if (existing && existing.length > 0) {
+    if (overlappingPolicies && overlappingPolicies.length > 0) {
       throw new Error('Score range overlaps with existing grading policy');
     }
 
     // Check for duplicate grade
-    const { data: duplicateGrade, error: gradeError } = await supabase
+    const { data: duplicateGrade, error: gradeError } = await serviceClient
       .from('grading_policies')
       .select('id')
       .eq('grade', input.grade)
@@ -82,7 +90,7 @@ export const POST = makeRoute({
       throw new Error('Grade already exists');
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await serviceClient
       .from('grading_policies')
       .insert([{
         grade: input.grade,
@@ -188,7 +196,9 @@ export const DELETE = makeRoute({
   }),
   output: z.object({ success: z.boolean() }),
   handle: async ({ supabase, input }) => {
-    const { error } = await supabase
+    // Use service client for admin operations to bypass RLS
+    const serviceClient = createServiceClient();
+    const { error } = await serviceClient
       .from('grading_policies')
       .delete()
       .eq('id', input.id);
