@@ -1,4 +1,4 @@
-import { makeRoute } from '@/src/lib/api/routeFactory';
+import { makeRoute } from '@/lib/api/routeFactory';
 import { NextResponse } from 'next/server';
 
 /**
@@ -59,9 +59,9 @@ export const GET = makeRoute({
 
     // Calculate overall statistics
     const totalGradePoints = results.reduce((sum, result) => 
-      sum + (result.grade_point || 0) * result.courses.unit, 0);
+      sum + (result.grade_point || 0) * result.courses[0].unit, 0);
     const totalUnits = results.reduce((sum, result) => 
-      sum + result.courses.unit, 0);
+      sum + result.courses[0].unit, 0);
     const cgpa = totalUnits > 0 ? totalGradePoints / totalUnits : 0;
 
     // For now, return a JSON response with transcript data
@@ -70,16 +70,16 @@ export const GET = makeRoute({
       student_info: {
         name: student.full_name,
         matric_number: student.matric_number,
-        department: student.departments.department_name,
+        department: student.departments[0].department_name,
         level: student.level,
         enrollment_date: student.enrollment_date
       },
       academic_record: results.map(result => ({
-        session: result.academic_sessions.session_name,
-        semester: result.academic_sessions.semester,
-        course_code: result.courses.course_code,
-        course_title: result.courses.course_title,
-        unit: result.courses.unit,
+        session: result.academic_sessions[0].session_name,
+        semester: result.academic_sessions[0].semester,
+        course_code: result.courses[0].course_code,
+        course_title: result.courses[0].course_title,
+        unit: result.courses[0].unit,
         score: result.score,
         grade: result.grade,
         grade_point: result.grade_point

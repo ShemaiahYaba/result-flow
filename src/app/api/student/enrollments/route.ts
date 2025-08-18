@@ -1,5 +1,5 @@
-import { makeRoute } from '@/src/lib/api/routeFactory';
-import { EnrollmentsResponseSchema } from '@/src/schemas/student/api';
+import { makeRoute } from '@/lib/api/routeFactory';
+import { EnrollmentsResponseSchema } from '@/schemas/student/api';
 
 /**
  * GET /api/student/enrollments
@@ -97,7 +97,7 @@ export const GET = makeRoute({
         course: {
           id: enrollment.courses.id,
           course_code: enrollment.courses.course_code,
-          course_title: enrollment.courses.course_title,
+          course_name: enrollment.courses.course_title,
           unit: enrollment.courses.unit,
           level: enrollment.courses.level,
           semester: enrollment.courses.semester,

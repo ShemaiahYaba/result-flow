@@ -125,7 +125,7 @@ async function getAuthenticatedUser(req: NextRequest): Promise<AuthenticatedUser
     email: user.email,
     role: profile?.role,
     aud: user.aud,
-    exp: user.exp || 0
+    exp: (user as any).exp || 0
   };
 }
 
