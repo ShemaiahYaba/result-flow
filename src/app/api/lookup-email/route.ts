@@ -91,8 +91,20 @@ export async function POST(req: NextRequest) {
       
       if (hodResult.data) {
         data = { email: hodResult.data.email, role: 'hod' };
+      } else {
+        console.log('- Not found in HODs, checking admins table for admin_id');
+        const adminResult = await supabase
+          .from('admins')
+          .select('email')
+          .eq('admin_id', idValue)
+          .maybeSingle();
+        
+        if (adminResult.data) {
+          data = { email: adminResult.data.email, role: 'admin' };
+        }
+        error = adminResult.error;
       }
-      error = hodResult.error;
+      error = error || hodResult.error;
       
     } else if (idType === 'admin_id') {
       console.log('- Querying admins table for admin_id');
