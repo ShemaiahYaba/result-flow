@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/providers/AuthProvider';
+import { useAuth } from '@/providers/UnifiedAuthProvider';
 
 export interface StudentResult {
   code: string;
@@ -17,7 +17,7 @@ export interface StudentStats {
 }
 
 export function useStudentDashboard() {
-  const { logout } = useAuth();
+  const { signOut } = useAuth();
   const [stats, setStats] = useState<StudentStats>({
     cgpa: 4.75,
     gpa: 4.88,
@@ -57,7 +57,7 @@ export function useStudentDashboard() {
   return {
     stats,
     loading,
-    logout,
+    signOut,
     downloadTranscript,
     refetchResults: fetchResults
   };

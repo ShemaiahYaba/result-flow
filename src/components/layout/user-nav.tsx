@@ -15,11 +15,11 @@ import Link from 'next/link';
 import { useSidebar } from '../ui/sidebar';
 import { LogOut, User, Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/providers/AuthProvider';
+import { useAuth } from '@/providers/UnifiedAuthProvider';
 
 export function UserNav() {
     const pathname = usePathname();
-    const { logout } = useAuth();
+    const { signOut } = useAuth();
 
   const getProfileLink = () => {
     if (pathname.startsWith('/admin')) {
@@ -64,7 +64,7 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout}>
+        <DropdownMenuItem onClick={signOut}>
             <LogOut className="mr-2 h-4 w-4" />
             Log out
         </DropdownMenuItem>

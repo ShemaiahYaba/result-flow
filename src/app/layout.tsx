@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { GlobalProvider } from "../contexts/GlobalContext";
-import { AuthProvider } from "../providers/AuthProvider";
-import { QueryProvider } from "../providers/QueryProvider";
-import { ErrorBoundary } from "../utils/ErrorHandlerExample";
-import NotificationSystem from "../components/ui/NotificationSystem";
+import { GlobalProvider } from "@/contexts/GlobalContext";
+import { UnifiedAuthProvider } from "@/providers/UnifiedAuthProvider";
+import { QueryProvider } from "@/providers/QueryProvider";
+import { ErrorBoundary } from "@/utils/ErrorHandlerExample";
+import NotificationSystem from "@/components/ui/NotificationSystem";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,10 +23,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ErrorBoundary>
           <QueryProvider>
             <GlobalProvider>
-              <AuthProvider>
+              <UnifiedAuthProvider>
                 {children}
                 <NotificationSystem />
-              </AuthProvider>
+              </UnifiedAuthProvider>
             </GlobalProvider>
           </QueryProvider>
         </ErrorBoundary>

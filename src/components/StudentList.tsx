@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useStudents } from '../hooks';
-import { useGlobalContext } from '../contexts/GlobalContext';
+import { useStudents } from '@/hooks';
+import { useGlobalContext } from '@/contexts/GlobalContext';
 import {
   createStudentSchema,
   updateStudentSchema,
   type CreateStudentInput,
   type UpdateStudentInput,
   type StudentWithJoins
-} from '../lib/validation/students.schema';
-import { validateData } from '../lib/validation';
+} from '@/lib/validation/students.schema';
+import { validateData } from '@/lib/validation';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent } from './ui/card';
@@ -90,7 +90,6 @@ export function StudentList({ supabase, departmentId, sessionId }: StudentListPr
     return students.filter(s => {
       const matchesSearch =
         !searchTerm ||
-        s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.matric_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase());
 

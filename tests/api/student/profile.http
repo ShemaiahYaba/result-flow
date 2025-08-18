@@ -1,0 +1,29 @@
+### Student Profile API Tests
+
+@baseUrl = http://localhost:3000/api/student
+@authToken = your-jwt-token-here
+
+### Get Student Profile
+GET {{baseUrl}}/profile
+Authorization: Bearer {{authToken}}
+
+### Update Student Profile
+PATCH {{baseUrl}}/profile
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "fullname": "John Updated Doe",
+  "email": "john.updated@email.com",
+  "phone_number": "+2348123456789"
+}
+
+### Update Password
+POST {{baseUrl}}/profile/password
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "current_password": "currentpassword123",
+  "new_password": "newpassword123"
+}

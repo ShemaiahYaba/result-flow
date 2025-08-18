@@ -3,7 +3,6 @@
 import React, { createContext, useReducer, useContext, useEffect } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
-import { supabaseClient } from '../utils/supabase/client';
 
 // ============================================================
 // TYPES & INTERFACES
@@ -180,8 +179,8 @@ export type AuthAction =
   | { type: 'SET_USER'; payload: any | null }
   | { type: 'SET_PROFILE'; payload: UserProfile | null }
   | { type: 'SET_ROLE'; payload: 'admin' | 'hod' | 'student' | null }
-  | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'CLEAR_PROFILE' }
+  | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'LOGOUT' };
 
 export type DataAction =
@@ -219,7 +218,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         ...state,
         user: action.payload,
-        isAuthenticated: true,
+        isAuthenticated: !!action.payload,
       };
     case 'SET_PROFILE':
       return {
@@ -246,22 +245,23 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
           role: action.payload || 'student',
         },
       };
-    case 'SET_LOADING':
-      return {
-        ...state,
-        isLoading: action.payload,
-      };
     case 'CLEAR_PROFILE':
       return {
         ...state,
         profile: null,
       };
+    case 'SET_LOADING':
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
     case 'LOGOUT':
       return {
+        ...state,
         user: null,
         profile: null,
-        isLoading: false,
         isAuthenticated: false,
+        isLoading: false,
       };
     default:
       return state;
@@ -352,15 +352,10 @@ const globalReducer = (state: GlobalState, action: GlobalAction): GlobalState =>
 
 const initialState: GlobalState = {
   auth: {
-    user: { id: 'demo-user' },
-    profile: {
-      id: 'demo-user',
-      fullname: 'Demo User',
-      email: 'demo@example.com',
-      role: 'admin' as const,
-    },
+    user: null,
+    profile: null,
     isLoading: false,
-    isAuthenticated: true,
+    isAuthenticated: false,
   },
   data: {
     departments: [],
@@ -435,20 +430,9 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
   const [session, setSession] = React.useState<Session | null>(supabaseSessionData);
   const [state, dispatch] = useReducer(globalReducer, initialState);
 
-  // Subscribe to Supabase auth changes
-  React.useEffect(() => {
-    const supabase = supabaseClient;
-    const { data: listener } = supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
-      setSession(session);
-      if (event === 'SIGNED_OUT') {
-        dispatch({ type: 'SET_USER', payload: null });
-        dispatch({ type: 'SET_ROLE', payload: null });
-        dispatch({ type: 'CLEAR_PROFILE' });
-        router.push('/');
-      }
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
+  // ============================================================
+  // DATA HELPERS (simplified with mock data)
+  // ============================================================
 
 
   // Update profile implementation (stub, must be implemented as needed)
@@ -853,7 +837,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children, supaba
     isAdmin,
     isHOD,
     isStudent,
-    hasPermission,
+    hasPermission
   };
 
   return (

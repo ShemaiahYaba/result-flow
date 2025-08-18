@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/providers/AuthProvider';
+import { useAuth } from '@/providers/UnifiedAuthProvider';
 
 export interface AdminStats {
   totalHods: number;
@@ -9,7 +9,7 @@ export interface AdminStats {
 }
 
 export function useAdminDashboard() {
-  const { logout } = useAuth();
+  const { signOut } = useAuth();
   const [stats, setStats] = useState<AdminStats>({
     totalHods: 3,
     departments: 5,
@@ -39,7 +39,7 @@ export function useAdminDashboard() {
   return {
     stats,
     loading,
-    logout,
+    signOut,
     refetchStats: fetchStats
   };
 }

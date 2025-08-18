@@ -1,9 +1,7 @@
 "use client";
 
 import { GraduationCap } from "lucide-react";
-import { useAuth } from '@/providers/AuthProvider';
-import { loginHelper } from '../lib/businessHelpers';
-import { useReducer } from 'react';
+import { useAuth } from '@/providers/UnifiedAuthProvider';
 import {
   Card,
   CardContent,
@@ -19,7 +17,9 @@ import { Button } from "@/components/ui/button";
 
 import { useRouter } from 'next/navigation';
 
-function LoginForm({ role, cta, login, dashboardRoute, dispatch, router, setRoleFromAPI }: { role: string; cta: string; login: (email: string, password: string) => Promise<void>; dashboardRoute: string; dispatch: any; router: any; setRoleFromAPI: (role: string) => void }) {
+function LoginForm({ role, cta, dashboardRoute }: { role: string; cta: string; dashboardRoute: string }) {
+  const { signIn } = useAuth();
+  const router = useRouter();
   const [idValue, setIdValue] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -53,9 +53,8 @@ function LoginForm({ role, cta, login, dashboardRoute, dispatch, router, setRole
       ) {
         throw new Error('Wrong portal, please use the right portal');
       }
-      // 2. Store role from API first, then login
-      setRoleFromAPI(returnedRole);
-      await login(email, password);
+      // 2. Login with email and password
+      await signIn(email, password);
       // Wait a moment for auth state to update before navigation
       setTimeout(() => {
         router.push(dashboardRoute);
@@ -109,9 +108,15 @@ function LoginForm({ role, cta, login, dashboardRoute, dispatch, router, setRole
 }
 
 export default function Home() {
-  const { login, setRoleFromAPI } = useAuth();
-  const [state, dispatch] = useReducer((state: any, action: any) => state, {});
+  const { isAuthenticated, role: userRole } = useAuth();
   const router = useRouter();
+
+  // Redirect if already authenticated
+  if (isAuthenticated && userRole) {
+    const dashboardRoute = userRole === 'admin' ? '/admin' : userRole === 'hod' ? '/hod' : '/student';
+    router.push(dashboardRoute);
+    return null;
+  }
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-md">
@@ -137,7 +142,7 @@ export default function Home() {
                   Access your results, track your CGPA, and more.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="Student" cta="Login as Student" login={login} dashboardRoute="/student" dispatch={dispatch} router={router} setRoleFromAPI={setRoleFromAPI} />
+              <LoginForm role="Student" cta="Login as Student" dashboardRoute="/student" />
             </Card>
           </TabsContent>
           <TabsContent value="hod">
@@ -148,7 +153,7 @@ export default function Home() {
                   Manage departmental results and student registries.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="HOD" cta="Login as HOD" login={login} dashboardRoute="/hod" dispatch={dispatch} router={router} setRoleFromAPI={setRoleFromAPI} />
+              <LoginForm role="HOD" cta="Login as HOD" dashboardRoute="/hod" />
             </Card>
           </TabsContent>
           <TabsContent value="admin">
@@ -159,7 +164,7 @@ export default function Home() {
                   Manage university settings, policies, and approvals.
                 </CardDescription>
               </CardHeader>
-              <LoginForm role="Admin" cta="Login as Admin" login={login} dashboardRoute="/admin" dispatch={dispatch} router={router} setRoleFromAPI={setRoleFromAPI} />
+              <LoginForm role="Admin" cta="Login as Admin" dashboardRoute="/admin" />
             </Card>
           </TabsContent>
         </Tabs>

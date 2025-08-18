@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useGlobalContext } from '../contexts/GlobalContext';
+import { useGlobalContext } from '@/contexts/GlobalContext';
 import { useErrorHandler, ErrorType } from './ErrorHandler';
 
 // ============================================================

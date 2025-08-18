@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/providers/AuthProvider';
+import { useAuth } from '@/providers/UnifiedAuthProvider';
 
 export interface HodStats {
   registeredStudents: number;
@@ -8,7 +8,7 @@ export interface HodStats {
 }
 
 export function useHodDashboard() {
-  const { logout } = useAuth();
+  const { signOut } = useAuth();
   const [stats, setStats] = useState<HodStats>({
     registeredStudents: 1254,
     departmentalCourses: 32,
@@ -37,7 +37,7 @@ export function useHodDashboard() {
   return {
     stats,
     loading,
-    logout,
+    signOut,
     refetchStats: fetchStats
   };
 }

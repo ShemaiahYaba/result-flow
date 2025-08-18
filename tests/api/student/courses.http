@@ -1,0 +1,28 @@
+### Student Courses API Tests
+
+@baseUrl = http://localhost:3000/api/student
+@authToken = your-jwt-token-here
+
+### Get Available Courses
+GET {{baseUrl}}/courses
+Authorization: Bearer {{authToken}}
+
+### Get Courses by Level
+GET {{baseUrl}}/courses?level=200
+Authorization: Bearer {{authToken}}
+
+### Get Courses by Semester
+GET {{baseUrl}}/courses?semester=First
+Authorization: Bearer {{authToken}}
+
+### Get Courses with Pagination
+GET {{baseUrl}}/courses?limit=10&offset=0
+Authorization: Bearer {{authToken}}
+
+### Get Course Enrollments
+GET {{baseUrl}}/enrollments
+Authorization: Bearer {{authToken}}
+
+### Download Transcript
+GET {{baseUrl}}/transcript
+Authorization: Bearer {{authToken}}
