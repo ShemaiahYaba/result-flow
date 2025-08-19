@@ -76,29 +76,12 @@ export const GET = makeRoute({
 
       const totalCourses = coursesError ? 0 : (coursesCount || 0);
 
-      // Fetch pending results approvals for admin's university
-      // Get course IDs for the university departments
-      const { data: universityCourses } = await supabase
-        .from('courses')
-        .select('id')
-        .in('department_id', departmentIds);
-
-      const courseIds = universityCourses?.map(course => course.id) || [];
-
-      // Then get enrollment IDs for those courses
-      const { data: enrollments } = await supabase
-        .from('student_course_enrollments')
-        .select('id')
-        .in('course_id', courseIds);
-
-      const enrollmentIds = enrollments?.map(enrollment => enrollment.id) || [];
-
-      // Finally count pending results for those enrollments
+      // Fetch pending results approvals for admin's university using the admin_pending_approvals view
       const { count: pendingCount, error: pendingError } = await supabase
-        .from('results_new')
+        .from('admin_pending_approvals')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending')
-        .in('student_course_enrollment_id', enrollmentIds);
+        .eq('status', 'submitted')
+        .eq('admin_id', userData.user_entity_id);
 
       const pendingApprovals = pendingError ? 0 : (pendingCount || 0);
 

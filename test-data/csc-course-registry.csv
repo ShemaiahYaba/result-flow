@@ -1,0 +1,30 @@
+course_code,course_title,course_unit,level,semester
+CSC101,Introduction to Computing,3,100,first
+CSC102,Computer Programming I,3,100,first
+CSC103,Mathematics for Computer Science,3,100,first
+CSC104,Digital Logic Design,3,100,second
+CSC105,Computer Programming II,3,100,second
+CSC106,Discrete Mathematics,3,100,second
+CSC201,Data Structures and Algorithms,3,200,first
+CSC202,Computer Organization,3,200,first
+CSC203,Object-Oriented Programming,3,200,first
+CSC204,Database Systems,3,200,second
+CSC205,Operating Systems,3,200,second
+CSC206,Software Engineering,3,200,second
+CSC301,Computer Networks,3,300,first
+CSC302,Artificial Intelligence,3,300,first
+CSC303,Web Development,3,300,first
+CSC304,Mobile Application Development,3,300,second
+CSC305,Computer Graphics,3,300,second
+CSC306,Cybersecurity Fundamentals,3,300,second
+CSC401,Machine Learning,3,400,first
+CSC402,Distributed Systems,3,400,first
+CSC403,Software Project Management,3,400,first
+CSC404,Advanced Database Systems,3,400,second
+CSC405,Cloud Computing,3,400,second
+CSC406,Final Year Project I,6,400,second
+CSC501,Advanced Machine Learning,3,500,first
+CSC502,Research Methodology,3,500,first
+CSC503,Advanced Software Engineering,3,500,first
+CSC504,Final Year Project II,6,500,second
+CSC505,Thesis Writing,3,500,second

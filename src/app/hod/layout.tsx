@@ -12,8 +12,8 @@ import { useAuth } from "@/providers/UnifiedAuthProvider";
 const navItems = [
   { href: "/hod", label: "Dashboard", icon: LayoutDashboard },
   { href: "/hod/uploads", label: "Uploads", icon: Upload },
-  { href: "/hod/broadsheet", label: "Broadsheet", icon: FileText },
   { href: "/hod/upload-history", label: "Upload History", icon: History },
+  { href: "/hod/broadsheet", label: "Broadsheet", icon: FileText },
   { href: "/hod/profile", label: "My Profile", icon: User },
 ];
 

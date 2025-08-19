@@ -210,6 +210,7 @@ export default function UploadHistoryPage() {
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="student_registry">Student Registry</SelectItem>
+                <SelectItem value="course_registry">Course Registry</SelectItem>
                 <SelectItem value="course_marksheet">Course Marksheet</SelectItem>
               </SelectContent>
             </Select>

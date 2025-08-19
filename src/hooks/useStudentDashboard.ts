@@ -42,32 +42,45 @@ export function useStudentDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { authenticatedFetch } = useAuth();
+
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/student/dashboard', {
+      // Fetch CGPA data from dedicated endpoint
+      const cgpaResponse = await authenticatedFetch('/api/student/results/cgpa', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch dashboard data: ${response.statusText}`);
+      let cgpaData = null;
+      if (cgpaResponse.ok) {
+        cgpaData = await cgpaResponse.json();
       }
 
-      const result = await response.json();
-      const data = result.data || result;
+      // Fetch dashboard data
+      const dashboardResponse = await authenticatedFetch('/api/student/dashboard', {
+        method: 'GET',
+      });
+
+      let dashboardData = null;
+      if (dashboardResponse.ok) {
+        const result = await dashboardResponse.json();
+        dashboardData = result.data || result;
+      }
 
       setStats({
-        cgpa: data.academic_summary?.cumulative_gpa || null,
-        gpa: data.recent_results?.[0]?.semester_gpa || null,
-        semester: data.academic_summary?.current_semester || null,
+        cgpa: cgpaData?.cgpa || null,
+        gpa: dashboardData?.recent_results?.[0]?.semester_gpa || null,
+        semester: dashboardData?.academic_summary?.current_semester || null,
         currentResults: [], // Will be populated from results API
-        student_info: data.student_info,
-        academic_summary: data.academic_summary
+        student_info: dashboardData?.student_info || null,
+        academic_summary: {
+          ...dashboardData?.academic_summary,
+          total_units_attempted: cgpaData?.total_units || 0,
+          total_grade_points: cgpaData?.total_grade_points || 0
+        }
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
@@ -75,7 +88,7 @@ export function useStudentDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authenticatedFetch]);
 
   const downloadTranscript = async () => {
     // TODO: Implement transcript download

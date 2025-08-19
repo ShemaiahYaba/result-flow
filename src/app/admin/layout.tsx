@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LayoutDashboard, Gavel, FileSliders, CheckCircle, Building, UserCog, User } from "lucide-react";
+import { LayoutDashboard, Gavel, FileSliders, CheckCircle, Building, UserCog, User, FileCheck } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { Header } from "@/components/layout/header";
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/admin/grading-policy", label: "Grading Policy", icon: Gavel },
   { href: "/admin/marksheet-format", label: "Marksheet Format", icon: FileSliders },
   { href: "/admin/approve-results", label: "Approve Results", icon: CheckCircle },
+  { href: "/admin/approved-results", label: "Approved Results", icon: FileCheck },
   { href: "/admin/profile", label: "My Profile", icon: User },
 ];
 

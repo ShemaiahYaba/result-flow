@@ -79,11 +79,16 @@ export default function ApproveResultsPage() {
             setLoading(true);
             const response = await authenticatedFetch('/api/admin/approve-results');
             if (response.ok) {
-                const data: ApproveResultsResponse = await response.json();
-                setSubmissions(data.submissions);
+                const result = await response.json();
+                const data = result.data || result;
+                setSubmissions(data.submissions || []);
+            } else {
+                console.error('Failed to fetch submissions:', response.statusText);
+                setSubmissions([]);
             }
         } catch (error) {
             console.error('Failed to fetch submissions:', error);
+            setSubmissions([]);
         } finally {
             setLoading(false);
         }

@@ -47,43 +47,17 @@ export const GET = makeRoute({
   input: ApproveResultsQuerySchema,
   output: ApproveResultsResponseSchema,
   requiredRole: 'admin',
-  handle: async ({ input, supabase }) => {
+  handle: async ({ input, supabase, user }) => {
     const page = parseInt(input.page || '1');
     const limit = parseInt(input.limit || '10');
     const offset = (page - 1) * limit;
 
-    // Get pending submissions with related data
+    // Get pending submissions using the admin_pending_approvals view
     const { data: submissions, error: submissionsError } = await supabase
-      .from('result_submissions')
-      .select(`
-        id,
-        hod_id,
-        course_id,
-        semester_id,
-        total_results,
-        status,
-        submission_notes,
-        submitted_at,
-        file_uploads!inner (
-          id,
-          file_name,
-          total_records,
-          processed_records,
-          failed_records,
-          status
-        ),
-        entities!result_submissions_hod_id_fkey (
-          full_name
-        ),
-        courses (
-          course_code,
-          course_title
-        ),
-        semesters (
-          semester_name
-        )
-      `)
+      .from('admin_pending_approvals')
+      .select('*')
       .eq('status', 'submitted')
+      .eq('admin_id', user.user_entity_id)
       .order('submitted_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -93,9 +67,10 @@ export const GET = makeRoute({
 
     // Get total count
     const { count, error: countError } = await supabase
-      .from('result_submissions')
+      .from('admin_pending_approvals')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'submitted');
+      .eq('status', 'submitted')
+      .eq('admin_id', user.user_entity_id);
 
     if (countError) {
       throw new Error(`Failed to get submissions count: ${countError.message}`);
@@ -104,25 +79,25 @@ export const GET = makeRoute({
     const totalPages = Math.ceil((count || 0) / limit);
 
     const formattedSubmissions = submissions?.map(submission => ({
-      id: submission.id,
-      hod_id: submission.hod_id,
-      hod_name: (submission.entities as any)?.full_name || 'Unknown HOD',
-      course_id: submission.course_id,
-      course_code: (submission.courses as any)?.course_code || 'Unknown',
-      course_title: (submission.courses as any)?.course_title || 'Unknown Course',
-      semester_id: submission.semester_id,
-      semester_name: (submission.semesters as any)?.semester_name || 'Unknown Semester',
+      id: submission.submission_id,
+      hod_id: submission.hod_staff_id,
+      hod_name: submission.submitted_by_hod || 'Unknown HOD',
+      course_id: submission.course_id || '',
+      course_code: submission.course_code || 'Unknown',
+      course_title: submission.course_title || 'Unknown Course',
+      semester_id: submission.semester_id || '',
+      semester_name: 'Current Semester', // View doesn't include semester name
       total_results: submission.total_results,
       status: submission.status,
       submission_notes: submission.submission_notes,
       submitted_at: submission.submitted_at,
       file_upload: {
-        id: (submission.file_uploads as any).id,
-        file_name: (submission.file_uploads as any).file_name,
-        total_records: (submission.file_uploads as any).total_records,
-        processed_records: (submission.file_uploads as any).processed_records,
-        failed_records: (submission.file_uploads as any).failed_records,
-        status: (submission.file_uploads as any).status
+        id: '',
+        file_name: 'N/A',
+        total_records: submission.total_results,
+        processed_records: submission.total_results,
+        failed_records: 0,
+        status: 'completed'
       }
     })) || [];
 
@@ -190,8 +165,6 @@ export const POST = makeRoute({
       .from('result_submissions')
       .update({
         status: newStatus,
-        admin_id: user.user_entity_id,
-        admin_notes,
         reviewed_at: new Date().toISOString()
       })
       .eq('id', submission_id);

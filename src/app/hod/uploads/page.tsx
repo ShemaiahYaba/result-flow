@@ -118,6 +118,7 @@ export default function HodUploadsPage() {
     const [selectedCourse, setSelectedCourse] = useState<string>("");
     const [selectedSemester, setSelectedSemester] = useState<string>("");
     const [studentRegistryFile, setStudentRegistryFile] = useState<File | null>(null);
+    const [courseRegistryFile, setCourseRegistryFile] = useState<File | null>(null);
     const [marksheetFile, setMarksheetFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [uploadResults, setUploadResults] = useState<any>(null);
@@ -173,6 +174,38 @@ export default function HodUploadsPage() {
 
             setUploadResults(result.data || result);
             alert(`Upload successful! Processed ${result.data?.processed_records || 0} records.`);
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleCourseRegistryUpload = async () => {
+        if (!courseRegistryFile || !selectedSemester) {
+            alert('Please select a file and semester');
+            return;
+        }
+
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', courseRegistryFile);
+            formData.append('semester_id', selectedSemester);
+
+            const response = await authenticatedFetch('/api/hod/uploads/course-registry', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Upload failed');
+            }
+
+            setUploadResults(result.data || result);
+            alert(`Upload successful! Processed ${result.data?.processed_records || 0} course records.`);
         } catch (error) {
             console.error('Upload error:', error);
             alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -237,7 +270,7 @@ export default function HodUploadsPage() {
         <div className="container mx-auto px-4 py-8">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Management</h1>
-                <p className="text-gray-600">Upload student registries and course marksheets for your department.</p>
+                <p className="text-gray-600">Upload student registries, course registries and course marksheets for your department.</p>
             </div>
 
             {/* Semester Selection */}
@@ -262,7 +295,7 @@ export default function HodUploadsPage() {
                 </Select>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Student Registry Upload */}
                 <div className="bg-white rounded-lg shadow-md p-6">
                     <h2 className="text-xl font-semibold text-gray-900 mb-4">Student Registry Upload</h2>
@@ -282,6 +315,28 @@ export default function HodUploadsPage() {
                         onClick={handleStudentRegistryUpload}
                     >
                         {uploading ? 'Uploading...' : 'Upload Student Registry'}
+                    </Button>
+                </div>
+
+                {/* Course Registry Upload */}
+                <div className="bg-white rounded-lg shadow-md p-6">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-4">Course Registry Upload</h2>
+                    <p className="text-gray-600 mb-6">Upload a CSV file containing course registration data.</p>
+                    
+                    <UploadBox 
+                        id="course-registry"
+                        title="Course Registry File"
+                        description="CSV file with course data (course_id, course_code, course_title, course_description)"
+                        acceptedFiles=".csv,.xlsx"
+                        onFileSelect={setCourseRegistryFile}
+                    />
+                    
+                    <Button 
+                        className="w-full mt-4" 
+                        disabled={!courseRegistryFile || !selectedSemester || uploading}
+                        onClick={handleCourseRegistryUpload}
+                    >
+                        {uploading ? 'Uploading...' : 'Upload Course Registry'}
                     </Button>
                 </div>
 

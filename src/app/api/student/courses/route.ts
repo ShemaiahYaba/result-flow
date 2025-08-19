@@ -15,29 +15,16 @@ export const GET = makeRoute({
   output: CoursesResponseSchema,
   requiredRole: 'student',
   handle: async ({ supabase, user, input }) => {
-    // Get student info to determine department and level
-    const { data: student, error: studentError } = await supabase
-      .from('students')
-      .select('department_id, level')
-      .eq('profile_id', user.id)
-      .single();
-
-    if (studentError) throw studentError;
-
-    // Build query for courses
+    // Use the optimized student_available_courses view
     let query = supabase
-      .from('courses')
+      .from('student_available_courses')
       .select('*', { count: 'exact' })
-      .eq('department_id', student.department_id)
-      .eq('is_active', true)
+      .eq('student_id', user.user_entity_id)
       .order('course_code', { ascending: true });
 
     // Apply filters
     if (input.level) {
       query = query.eq('level', input.level);
-    } else {
-      // Default to student's current level and below
-      query = query.lte('level', student.level);
     }
 
     if (input.semester) {

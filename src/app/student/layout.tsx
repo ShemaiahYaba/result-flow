@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from "react";
-import { LayoutDashboard, History, User } from "lucide-react";
+import { LayoutDashboard, History, User, ListPlus, ListCheck } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { Header } from "@/components/layout/header";
@@ -11,6 +11,7 @@ import { useAuth } from "@/providers/UnifiedAuthProvider";
 
 const navItems = [
   { href: "/student", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/student/course-registration", label: "Course Registration", icon: ListPlus },
   { href: "/student/past-results", label: "Past Results", icon: History },
   { href: "/student/profile", label: "My Profile", icon: User },
 ];
