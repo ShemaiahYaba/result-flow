@@ -85,7 +85,7 @@ export function StudentDashboardUI({ stats, loading, onLogout, onDownloadTranscr
 
       {/* Academic Performance Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+        {/* <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">CGPA</CardTitle>
             <CardDescription className="text-blue-100">Cumulative Grade Point Average</CardDescription>
@@ -94,7 +94,7 @@ export function StudentDashboardUI({ stats, loading, onLogout, onDownloadTranscr
             <div className="text-3xl font-bold">{stats.cgpa?.toFixed(2) || '0.00'}</div>
             <p className="text-sm text-blue-100 mt-1">Out of 5.00</p>
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card>
           <CardHeader className="pb-2">

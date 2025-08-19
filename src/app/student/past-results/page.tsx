@@ -99,7 +99,7 @@ export default function PastResultsPage() {
           </CardContent>
         </Card>
         
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">CGPA</CardTitle>
             <Trophy className="h-4 w-4 text-muted-foreground" />
@@ -110,7 +110,7 @@ export default function PastResultsPage() {
             </div>
             <p className="text-xs text-muted-foreground">Cumulative GPA</p>
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
