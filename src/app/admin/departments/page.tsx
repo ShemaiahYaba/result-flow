@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useDepartments } from "@/hooks/useDepartments";
+import { useAuth } from "@/providers/UnifiedAuthProvider";
 import {
   Card,
   CardContent,
@@ -35,18 +36,48 @@ export const dynamic = 'force-dynamic';
 
 export default function DepartmentsPage() {
     const { departments, loading, error, fetchDepartments } = useDepartments();
+    const { authenticatedFetch } = useAuth();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newDeptName, setNewDeptName] = useState("");
     const [newDeptHod, setNewDeptHod] = useState("");
     const [newDeptCode, setNewDeptCode] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleAddDepartment = () => {
-        // TODO: Implement POST API call to create department
-        console.log('Add department:', { newDeptName, newDeptCode });
-        setIsDialogOpen(false);
-        setNewDeptName("");
-        setNewDeptHod("");
-        setNewDeptCode("");
+    const handleAddDepartment = async () => {
+        if (!newDeptName.trim() || !newDeptCode.trim()) {
+            alert('Please fill in all required fields');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await authenticatedFetch('/api/admin/departments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    department_name: newDeptName.trim(),
+                    department_code: newDeptCode.trim().toUpperCase()
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to create department');
+            }
+
+            // Success - refresh departments list and close dialog
+            await fetchDepartments();
+            setIsDialogOpen(false);
+            setNewDeptName("");
+            setNewDeptHod("");
+            setNewDeptCode("");
+        } catch (error: any) {
+            alert(`Error creating department: ${error.message}`);
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -74,17 +105,15 @@ export default function DepartmentsPage() {
                                 <Label htmlFor="name" className="text-right">Name</Label>
                                 <Input id="name" placeholder="e.g., Computer Science" className="col-span-3" value={newDeptName} onChange={(e) => setNewDeptName(e.target.value)} />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
+                            <div className="grid grid-cols-4 items-center gap-4">       
                                 <Label htmlFor="department_code" className="text-right">Department Code</Label>
                                 <Input id="department_code" placeholder="e.g., CS" className="col-span-3" value={newDeptCode} onChange={(e) => setNewDeptCode(e.target.value)} />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="hod" className="text-right">HOD</Label>
-                                <Input id="hod" placeholder="e.g., Dr. John Doe" className="col-span-3" value={newDeptHod} onChange={(e) => setNewDeptHod(e.target.value)} />
-                            </div>
                         </div>
                         <DialogFooter>
-                        <Button type="submit" onClick={handleAddDepartment}>Save Department</Button>
+                        <Button type="submit" onClick={handleAddDepartment} disabled={isSubmitting}>
+                            {isSubmitting ? 'Creating...' : 'Save Department'}
+                        </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
@@ -100,8 +129,6 @@ export default function DepartmentsPage() {
                             <TableRow>
                                 <TableHead>Department Name</TableHead>
                                 <TableHead>Department Code</TableHead>
-                                <TableHead>Head of Department</TableHead>
-                                <TableHead>Created At</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -123,13 +150,6 @@ export default function DepartmentsPage() {
                                     <TableRow key={dept.id}>
                                         <TableCell className="font-medium">{dept.department_name}</TableCell>
                                         <TableCell>{dept.department_code}</TableCell>
-                                        <TableCell>
-                                            {dept.hod 
-                                                ? `${dept.hod.first_name || ''} ${dept.hod.last_name || ''}`.trim() || dept.hod.email
-                                                : 'No HOD assigned'
-                                            }
-                                        </TableCell>
-                                        <TableCell>{new Date(dept.created_at).toLocaleDateString()}</TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="icon">
                                                 <Edit className="h-4 w-4" />

@@ -3,16 +3,24 @@ import { authService } from '@/services/authService';
 
 export interface GradingPolicy {
   id: string;
-  grade: string;
+  policy_name: string;
   min_score: number;
   max_score: number;
+  grade: string;
+  grade_point: number;
+  description: string | null;
+  is_active: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 export interface GradingPolicyInput {
-  grade: string;
+  policy_name: string;
   min_score: number;
   max_score: number;
+  grade: string;
+  grade_point: number;
+  description?: string;
 }
 
 export function useGradingPolicy() {

@@ -19,7 +19,7 @@ import { useAuth } from '@/providers/UnifiedAuthProvider';
 
 export function UserNav() {
     const pathname = usePathname();
-    const { signOut } = useAuth();
+    const { signOut, user, isLoading } = useAuth();
 
   const getProfileLink = () => {
     if (pathname.startsWith('/admin')) {
@@ -31,22 +31,46 @@ export function UserNav() {
     return '/student/profile';
   };
 
+  const getUserInitials = () => {
+    if (!user?.firstName && !user?.lastName) {
+      return user?.email?.charAt(0).toUpperCase() || 'U';
+    }
+    return `${user?.firstName?.charAt(0) || ''}${user?.lastName?.charAt(0) || ''}`.toUpperCase();
+  };
+
+  const getDisplayName = () => {
+    if (user?.firstName || user?.lastName) {
+      return `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+    }
+    return user?.email?.split('@')[0] || 'User';
+  };
+
+  if (isLoading) {
+    return (
+      <Button variant="ghost" className="relative h-9 w-9 rounded-full" disabled>
+        <Avatar className="h-9 w-9">
+          <AvatarFallback>...</AvatarFallback>
+        </Avatar>
+      </Button>
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
             <AvatarImage src="https://placehold.co/48x48.png" alt="@user" data-ai-hint="user avatar" />
-            <AvatarFallback>U</AvatarFallback>
+            <AvatarFallback>{getUserInitials()}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Adewale Adekunle</p>
+            <p className="text-sm font-medium leading-none">{getDisplayName()}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              adekunle@university.edu
+              {user?.email || 'No email'}
             </p>
           </div>
         </DropdownMenuLabel>

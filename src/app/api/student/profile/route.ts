@@ -26,15 +26,11 @@ export const GET = makeRoute({
   output: StudentProfileResponseSchema,
   requiredRole: 'student',
   handle: async ({ supabase, user }) => {
-    // Get student entity ID from users table
-    const { data: userData } = await supabase
-      .from('users')
-      .select('user_entity_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!userData) {
-      throw new Error('User not found');
+    // Use user.user_entity_id directly from the authenticated user
+    const studentId = user.user_entity_id;
+    
+    if (!studentId) {
+      throw new Error('Student ID not found in user data');
     }
 
     // Get student profile with department info from new schema
@@ -56,7 +52,7 @@ export const GET = makeRoute({
           university_id
         )
       `)
-      .eq('id', userData.user_entity_id)
+      .eq('id', studentId)
       .single();
 
     if (studentError) {
@@ -112,15 +108,11 @@ export const PATCH = makeRoute({
   output: MessageResponseSchema,
   requiredRole: 'student',
   handle: async ({ supabase, user, input }) => {
-    // Get student entity ID from users table
-    const { data: userData } = await supabase
-      .from('users')
-      .select('user_entity_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!userData) {
-      throw new Error('User not found');
+    // Use user.user_entity_id directly from the authenticated user
+    const studentId = user.user_entity_id;
+    
+    if (!studentId) {
+      throw new Error('Student ID not found in user data');
     }
 
     // Update student profile in the students table
@@ -130,7 +122,7 @@ export const PATCH = makeRoute({
         ...input,
         updated_at: new Date().toISOString()
       })
-      .eq('id', userData.user_entity_id);
+      .eq('id', studentId);
 
     if (error) {
       throw new Error(`Failed to update student profile: ${error.message}`);

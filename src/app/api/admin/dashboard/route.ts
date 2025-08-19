@@ -19,7 +19,7 @@ export const GET = makeRoute({
       const { data: userData } = await supabase
         .from('users')
         .select('user_entity_id')
-        .eq('id', user.id)
+        .eq('auth_user_id', user.id)
         .single();
 
       if (!userData) {
@@ -36,11 +36,23 @@ export const GET = makeRoute({
         throw new Error('Admin not found');
       }
 
-      // Fetch total HODs count for admin's university
+      // Fetch departments for this university first
+      const { data: universityDepts, error: deptFetchError } = await supabase
+        .from('departments')
+        .select('id')
+        .eq('university_id', adminData.university_id);
+
+      if (deptFetchError) {
+        throw new Error(`Failed to fetch departments: ${deptFetchError.message}`);
+      }
+
+      const departmentIds = universityDepts?.map(d => d.id) || [];
+
+      // Fetch total HODs count for admin's university departments
       const { count: hodsCount, error: hodsError } = await supabase
         .from('hods')
         .select('*', { count: 'exact', head: true })
-        .eq('university_id', adminData.university_id);
+        .in('department_id', departmentIds);
 
       if (hodsError) {
         throw new Error(`Failed to fetch HODs count: ${hodsError.message}`);
@@ -56,20 +68,20 @@ export const GET = makeRoute({
         throw new Error(`Failed to fetch departments count: ${deptError.message}`);
       }
 
-      // Fetch courses count for admin's university
+      // Fetch courses count for admin's university (courses are linked via departments)
       const { count: coursesCount, error: coursesError } = await supabase
         .from('courses')
         .select('*', { count: 'exact', head: true })
-        .eq('university_id', adminData.university_id);
+        .in('department_id', departmentIds);
 
       const totalCourses = coursesError ? 0 : (coursesCount || 0);
 
       // Fetch pending results approvals for admin's university
-      // First get course IDs for the university
+      // Get course IDs for the university departments
       const { data: universityCourses } = await supabase
         .from('courses')
         .select('id')
-        .eq('university_id', adminData.university_id);
+        .in('department_id', departmentIds);
 
       const courseIds = universityCourses?.map(course => course.id) || [];
 

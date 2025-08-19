@@ -33,7 +33,7 @@ export const GET = makeRoute({
     const { data: userData } = await supabase
       .from('users')
       .select('user_entity_id')
-      .eq('id', user.id)
+      .eq('auth_user_id', user.id)
       .single();
 
     if (!userData) {
@@ -50,6 +50,18 @@ export const GET = makeRoute({
       throw new Error('Admin not found');
     }
 
+    // Get departments for admin's university first
+    const { data: universityDepts, error: deptError } = await supabase
+      .from('departments')
+      .select('id')
+      .eq('university_id', adminData.university_id);
+
+    if (deptError) {
+      throw new Error(`Failed to fetch departments: ${deptError.message}`);
+    }
+
+    const departmentIds = universityDepts?.map(d => d.id) || [];
+
     // Fetch HODs with their department information for admin's university
     const { data: hodsData, error } = await supabase
       .from('hods')
@@ -62,15 +74,15 @@ export const GET = makeRoute({
         email,
         phone_number,
         department_id,
-        university_id,
         created_at,
         departments!hods_department_id_fkey (
           id,
           department_name,
-          department_code
+          department_code,
+          university_id
         )
       `)
-      .eq('university_id', adminData.university_id);
+      .in('department_id', departmentIds);
 
     if (error) {
       throw new Error(`Failed to fetch HODs: ${error.message}`);
@@ -94,7 +106,7 @@ export const GET = makeRoute({
         id: hod.id,
         staff_id: hod.staff_id,
         department_id: hod.department_id,
-        university_id: hod.university_id,
+        university_id: department?.university_id || adminData.university_id,
         created_at: hod.created_at,
         // Personal fields
         first_name: hod.first_name,

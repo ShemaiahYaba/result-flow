@@ -35,7 +35,7 @@ export const GET = makeRoute({
     const { data: userData } = await supabase
       .from('users')
       .select('user_entity_id')
-      .eq('id', user.id)
+      .eq('auth_user_id', user.id)
       .single();
 
     if (!userData) {
@@ -95,5 +95,94 @@ export const GET = makeRoute({
     }));
 
     return transformedDepartments;
+  }
+});
+
+// ============================================================
+// POST - CREATE NEW DEPARTMENT
+// ============================================================
+
+const CreateDepartmentSchema = z.object({
+  department_name: z.string().min(1, "Department name is required"),
+  department_code: z.string().min(1, "Department code is required").max(10, "Department code too long")
+});
+
+const CreateDepartmentResponseSchema = z.object({
+  id: z.string().uuid(),
+  department_name: z.string(),
+  department_code: z.string(),
+  university_id: z.string().uuid(),
+  created_at: z.string()
+});
+
+/**
+ * POST /api/admin/departments
+ * Create a new department for admin's university
+ */
+export const POST = makeRoute({
+  method: 'POST',
+  input: CreateDepartmentSchema,
+  output: CreateDepartmentResponseSchema,
+  requiredRole: 'admin',
+  handle: async ({ supabase, user, input }) => {
+    // Get admin's university
+    const { data: userData } = await supabase
+      .from('users')
+      .select('user_entity_id')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (!userData) {
+      throw new Error('User not found');
+    }
+
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('university_id')
+      .eq('id', userData.user_entity_id)
+      .single();
+
+    if (!adminData) {
+      throw new Error('Admin not found');
+    }
+
+    // Check if department code already exists for this university
+    const { data: existingDept } = await supabase
+      .from('departments')
+      .select('id')
+      .eq('university_id', adminData.university_id)
+      .eq('department_code', input.department_code)
+      .maybeSingle();
+
+    if (existingDept) {
+      throw new Error('Department code already exists for this university');
+    }
+
+    // Create the new department
+    const { data: newDepartment, error: createError } = await supabase
+      .from('departments')
+      .insert({
+        university_id: adminData.university_id,
+        department_name: input.department_name,
+        department_code: input.department_code
+      })
+      .select('id, department_name, department_code, university_id, created_at')
+      .single();
+
+    if (createError) {
+      throw new Error(`Failed to create department: ${createError.message}`);
+    }
+
+    if (!newDepartment) {
+      throw new Error('Failed to create department');
+    }
+
+    return {
+      id: newDepartment.id,
+      department_name: newDepartment.department_name,
+      department_code: newDepartment.department_code,
+      university_id: newDepartment.university_id,
+      created_at: newDepartment.created_at
+    };
   }
 });

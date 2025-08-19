@@ -34,15 +34,15 @@ import { useGradingPolicy } from "@/hooks/useGradingPolicy";
 export default function GradingPolicyPage() {
     const { policies, loading, error, createPolicy, updatePolicy, deletePolicy } = useGradingPolicy();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newGrade, setNewGrade] = useState({grade: "", min_score: 0, max_score: 0 });
+    const [newGrade, setNewGrade] = useState({policy_name: "", grade: "", min_score: 0, max_score: 0, grade_point: 0, description: "" });
     const [editingPolicy, setEditingPolicy] = useState<string | null>(null);
 
     const handleAddGrade = async () => {
-        if (newGrade.grade && newGrade.min_score >= 0 && newGrade.max_score > newGrade.min_score) {
+        if (newGrade.policy_name && newGrade.grade && newGrade.min_score >= 0 && newGrade.max_score > newGrade.min_score && newGrade.grade_point >= 0) {
             try {
                 await createPolicy(newGrade);
                 setIsDialogOpen(false);
-                setNewGrade({grade: "", min_score: 0, max_score: 0 });
+                setNewGrade({policy_name: "", grade: "", min_score: 0, max_score: 0, grade_point: 0, description: "" });
             } catch (error: any) {
                 alert(error.message);
             }
@@ -82,8 +82,16 @@ export default function GradingPolicyPage() {
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="policy-name" className="text-right">Policy Name</Label>
+                                <Input id="policy-name" placeholder="e.g., Distinction" className="col-span-3" value={newGrade.policy_name} onChange={e => setNewGrade({...newGrade, policy_name: e.target.value})} />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="grade" className="text-right">Grade</Label>
-                                <Input id="grade" placeholder="e.g., A+" className="col-span-3" value={newGrade.grade} onChange={e => setNewGrade({...newGrade, grade: e.target.value})} />
+                                <Input id="grade" placeholder="e.g., A" className="col-span-3" value={newGrade.grade} onChange={e => setNewGrade({...newGrade, grade: e.target.value})} />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="grade-point" className="text-right">Grade Point</Label>
+                                <Input id="grade-point" type="number" step="0.01" placeholder="e.g., 5.00" className="col-span-3" value={newGrade.grade_point} onChange={e => setNewGrade({...newGrade, grade_point: parseFloat(e.target.value)})} />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="min-score" className="text-right">Min Score</Label>
@@ -92,6 +100,10 @@ export default function GradingPolicyPage() {
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="max-score" className="text-right">Max Score</Label>
                                 <Input id="max-score" type="number" placeholder="e.g., 100" className="col-span-3" value={newGrade.max_score} onChange={e => setNewGrade({...newGrade, max_score: parseInt(e.target.value)})} />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="description" className="text-right">Description</Label>
+                                <Input id="description" placeholder="e.g., Excellent Performance" className="col-span-3" value={newGrade.description} onChange={e => setNewGrade({...newGrade, description: e.target.value})} />
                             </div>
                         </div>
                         <DialogFooter>
@@ -109,29 +121,33 @@ export default function GradingPolicyPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>Policy Name</TableHead>
                                 <TableHead className="w-[100px]">Grade</TableHead>
-                                <TableHead>Minimum Score</TableHead>
-                                <TableHead>Maximum Score</TableHead>
+                                <TableHead>Grade Point</TableHead>
+                                <TableHead>Min Score</TableHead>
+                                <TableHead>Max Score</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center">Loading grading policies...</TableCell>
+                                    <TableCell colSpan={6} className="text-center">Loading grading policies...</TableCell>
                                 </TableRow>
                             ) : error ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center text-destructive">Error: {error}</TableCell>
+                                    <TableCell colSpan={6} className="text-center text-destructive">Error: {error}</TableCell>
                                 </TableRow>
                             ) : policies.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center">No grading policies found</TableCell>
+                                    <TableCell colSpan={6} className="text-center">No grading policies found</TableCell>
                                 </TableRow>
                             ) : (
                                 policies.map((policy) => (
                                     <TableRow key={policy.id}>
-                                        <TableCell className="font-medium">{policy.grade}</TableCell>
+                                        <TableCell className="font-medium">{policy.policy_name}</TableCell>
+                                        <TableCell>{policy.grade}</TableCell>
+                                        <TableCell>{policy.grade_point}</TableCell>
                                         <TableCell>{policy.min_score}</TableCell>
                                         <TableCell>{policy.max_score}</TableCell>
                                         <TableCell className="text-right">

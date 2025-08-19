@@ -37,14 +37,14 @@ import { useMarksheetFormat } from "@/hooks/useMarksheetFormat";
 export default function MarksheetFormatPage() {
     const { columns, loading, error, createColumn, updateColumn, deleteColumn } = useMarksheetFormat();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newColumn, setNewColumn] = useState<{ column_name: string; type: 'identifier' | 'text' | 'score'; required: boolean }>({ column_name: "", type: "text", required: false });
+    const [newColumn, setNewColumn] = useState<{ column_name: string; display_name: string; column_type: 'identifier' | 'text' | 'score'; is_required: boolean }>({ column_name: "", display_name: "", column_type: "text", is_required: false });
 
     const handleAddColumn = async () => {
-        if(newColumn.column_name && newColumn.type) {
+        if(newColumn.column_name && newColumn.display_name && newColumn.column_type) {
             try {
                 await createColumn(newColumn);
                 setIsDialogOpen(false);
-                setNewColumn({ column_name: "", type: "text", required: false });
+                setNewColumn({ column_name: "", display_name: "", column_type: "text", is_required: false });
             } catch (error: any) {
                 alert(error.message);
             }
@@ -84,11 +84,15 @@ export default function MarksheetFormatPage() {
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="column-name" className="text-right">Column Name</Label>
-                                <Input id="column-name" placeholder="e.g., Full Name" className="col-span-3" value={newColumn.column_name} onChange={e => setNewColumn({...newColumn, column_name: e.target.value})}/>
+                                <Input id="column-name" placeholder="e.g., student_id" className="col-span-3" value={newColumn.column_name} onChange={e => setNewColumn({...newColumn, column_name: e.target.value})}/>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="display-name" className="text-right">Display Name</Label>
+                                <Input id="display-name" placeholder="e.g., Student ID" className="col-span-3" value={newColumn.display_name} onChange={e => setNewColumn({...newColumn, display_name: e.target.value})}/>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="column-type" className="text-right">Type</Label>
-                                <Select value={newColumn.type} onValueChange={value => setNewColumn({...newColumn, type: value as 'identifier' | 'text' | 'score'})}>
+                                <Select value={newColumn.column_type} onValueChange={value => setNewColumn({...newColumn, column_type: value as 'identifier' | 'text' | 'score'})}>
                                     <SelectTrigger className="col-span-3">
                                         <SelectValue placeholder="Select type" />
                                     </SelectTrigger>
@@ -101,7 +105,7 @@ export default function MarksheetFormatPage() {
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="column-required" className="text-right">Required</Label>
-                                <Checkbox id="column-required" className="ml-4" checked={newColumn.required} onCheckedChange={checked => setNewColumn({...newColumn, required: !!checked})} />
+                                <Checkbox id="column-required" className="ml-4" checked={newColumn.is_required} onCheckedChange={checked => setNewColumn({...newColumn, is_required: !!checked})} />
                             </div>
                         </div>
                         <DialogFooter>
@@ -141,9 +145,9 @@ export default function MarksheetFormatPage() {
                             ) : (
                                 columns.map((col) => (
                                     <TableRow key={col.id}>
-                                        <TableCell className="font-medium">{col.column_name}</TableCell>
-                                        <TableCell><Badge variant="secondary">{col.type}</Badge></TableCell>
-                                        <TableCell>{col.required ? 'Yes' : 'No'}</TableCell>
+                                        <TableCell className="font-medium">{col.display_name}</TableCell>
+                                        <TableCell><Badge variant="secondary">{col.column_type}</Badge></TableCell>
+                                        <TableCell>{col.is_required ? 'Yes' : 'No'}</TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="icon">
                                                 <Edit className="h-4 w-4" />

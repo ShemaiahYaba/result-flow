@@ -22,14 +22,14 @@ export const GET = makeRoute({
   output: AdminProfileResponseSchema,
   requiredRole: 'admin',
   handle: async ({ supabase, user }) => {
-    // Get admin profile data
+    // Get admin profile data using auth_user_id to link Supabase Auth to users table
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select(`
         user_entity_id,
         role_id
       `)
-      .eq('id', user.id)
+      .eq('auth_user_id', user.id)
       .single();
 
     if (userError || !userData) {
@@ -101,23 +101,32 @@ export const PATCH = makeRoute({
   output: AdminProfileResponseSchema,
   requiredRole: 'admin',
   handle: async ({ supabase, user, input }) => {
-    // Update admin profile
+    // Get user entity ID first
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('user_entity_id')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      throw new Error('User not found');
+    }
+
+    // Update admin profile in admins table
     const { data: updatedProfile, error: updateError } = await supabase
-      .from('profiles')
+      .from('admins')
       .update({
         ...input,
       })
-      .eq('id', user.id)
-      .eq('role', 'admin')
+      .eq('id', userData.user_entity_id)
       .select(`
         id,
-        staff_id,
+        admin_id,
         email,
         first_name,
         middle_name,
         last_name,
         phone_number,
-        role,
         created_at
       `)
       .single();
@@ -130,14 +139,21 @@ export const PATCH = makeRoute({
       throw new Error('Admin profile not found');
     }
 
+    // Get role for response
+    const { data: roleData, error: roleError } = await supabase
+      .from('roles')
+      .select('role_name')
+      .eq('id', (await supabase.from('users').select('role_id').eq('auth_user_id', user.id).single()).data?.role_id)
+      .single();
+
     return {
-      staff_id: updatedProfile.staff_id,
+      staff_id: updatedProfile.admin_id,
       email: updatedProfile.email || user.email || '',
       first_name: updatedProfile.first_name,
       middle_name: updatedProfile.middle_name,
       last_name: updatedProfile.last_name,
       phone_number: updatedProfile.phone_number,
-      role: updatedProfile.role,
+      role: roleData?.role_name || 'admin',
       created_at: updatedProfile.created_at,
     };
   }

@@ -31,7 +31,7 @@ export const GET = makeRoute({
     const { data: userData } = await supabase
       .from('users')
       .select('user_entity_id')
-      .eq('id', user.id)
+      .eq('auth_user_id', user.id)
       .single();
 
     if (!userData) {
@@ -50,12 +50,12 @@ export const GET = makeRoute({
         email,
         phone_number,
         department_id,
-        university_id,
         created_at,
         departments!hods_department_id_fkey (
           id,
           department_name,
-          department_code
+          department_code,
+          university_id
         )
       `)
       .eq('id', userData.user_entity_id)
@@ -85,7 +85,7 @@ export const GET = makeRoute({
       department_id: hodProfile.department_id,
       department_name: (department as any)?.department_name || '',
       department_code: (department as any)?.department_code || '',
-      university_id: hodProfile.university_id
+      university_id: (department as any)?.university_id || ''
     };
   }
 });
@@ -114,7 +114,7 @@ export const PATCH = makeRoute({
     const { data: userData } = await supabase
       .from('users')
       .select('user_entity_id')
-      .eq('id', user.id)
+      .eq('auth_user_id', user.id)
       .single();
 
     if (!userData) {
@@ -135,12 +135,12 @@ export const PATCH = makeRoute({
         email,
         phone_number,
         department_id,
-        university_id,
         created_at,
         departments!hods_department_id_fkey (
           id,
           department_name,
-          department_code
+          department_code,
+          university_id
         )
       `)
       .single();
@@ -169,7 +169,7 @@ export const PATCH = makeRoute({
       department_id: updatedProfile.department_id,
       department_name: (department as any)?.department_name || '',
       department_code: (department as any)?.department_code || '',
-      university_id: updatedProfile.university_id
+      university_id: (department as any)?.university_id || ''
     };
   }
 });

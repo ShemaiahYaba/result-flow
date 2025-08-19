@@ -1,155 +1,227 @@
-import { makeRoute, createPaginationMeta } from '@/lib/api/routeFactory';
 import { z } from 'zod';
+import { makeRoute } from '@/lib/api/routeFactory';
 
 // Schema for results query parameters
 const ResultsQuerySchema = z.object({
+  session_id: z.string().uuid().optional(),
   semester_id: z.string().uuid().optional(),
-  course_id: z.string().uuid().optional(),
-  offset: z.number().int().min(0).optional(),
+  level: z.number().int().optional(),
+  page: z.number().int().min(1).optional(),
   limit: z.number().int().min(1).max(100).optional()
 });
 
-// Schema for course result item
-const CourseResultSchema = z.object({
-  id: z.string().uuid(),
-  course_code: z.string(),
-  course_name: z.string(),
-  credit_units: z.number(),
-  score: z.number(),
-  grade: z.string(),
-  status: z.enum(['pending', 'approved', 'rejected']),
+// Schema for semester group
+const SemesterResultsSchema = z.object({
+  semester_id: z.string(),
   session_name: z.string(),
   semester_name: z.string(),
-  semester_number: z.number(),
-  created_at: z.string()
+  level: z.number(),
+  semester_gpa: z.number().nullable(),
+  total_units_attempted: z.number(),
+  total_units_passed: z.number(),
+  courses: z.array(z.object({
+    result_id: z.string(),
+    course_code: z.string(),
+    course_title: z.string(),
+    course_unit: z.number(),
+    score: z.number(),
+    grade: z.string(),
+    status: z.string(),
+    created_at: z.string()
+  }))
 });
 
-const ResultsListResponseSchema = z.object({
-  items: z.array(CourseResultSchema),
-  meta: z.object({
-    total: z.number().int().min(0),
-    limit: z.number().int().min(1),
-    offset: z.number().int().min(0),
-    hasMore: z.boolean()
-  })
+const StudentResultsResponseSchema = z.object({
+  student_info: z.object({
+    matric_number: z.string(),
+    full_name: z.string(),
+    department_name: z.string(),
+    university_name: z.string()
+  }),
+  academic_summary: z.object({
+    total_semesters: z.number(),
+    cumulative_gpa: z.number().nullable(),
+    total_units_attempted: z.number(),
+    total_units_passed: z.number()
+  }),
+  semester_results: z.array(SemesterResultsSchema)
 });
 
 /**
  * GET /api/student/results
- * Fetch student results with optional filters and pagination
+ * Get comprehensive student results grouped by semester with academic summary
  */
 export const GET = makeRoute({
   method: 'GET',
   input: ResultsQuerySchema,
-  output: ResultsListResponseSchema,
+  output: StudentResultsResponseSchema,
   requiredRole: 'student',
   handle: async ({ supabase, user, input }) => {
-    // Get student entity ID from users table
-    const { data: userData } = await supabase
-      .from('users')
-      .select('user_entity_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!userData) {
-      throw new Error('User not found');
+    const studentId = user.user_entity_id;
+    
+    if (!studentId) {
+      throw new Error('Student ID not found in user data');
     }
 
-    // Build query for results using new schema structure
-    let query = supabase
-      .from('results_new')
+    // Get student basic info
+    const { data: studentData, error: studentError } = await supabase
+      .from('students')
       .select(`
         id,
-        score,
-        grade,
-        status,
-        created_at,
-        student_course_enrollments!inner (
-          id,
-          course_id,
-          student_semester_enrollments!inner (
-            id,
-            student_id,
-            semester_id,
-            academic_semesters!inner (
-              id,
-              semester_name,
-              semester_number,
-              session_id,
-              academic_sessions!inner (
-                session_name
-              )
-            )
-          ),
-          courses!inner (
-            course_code,
-            course_name,
-            credit_units
+        first_name,
+        middle_name,
+        last_name,
+        matric_number,
+        departments!students_department_id_fkey (
+          department_name,
+          universities!departments_university_id_fkey (
+            university_name
           )
         )
-      `, { count: 'exact' })
-      .eq('student_course_enrollments.student_semester_enrollments.student_id', userData.user_entity_id)
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false });
+      `)
+      .eq('id', studentId)
+      .single();
 
-    // Apply filters
+    if (studentError || !studentData) {
+      throw new Error('Student not found');
+    }
+
+    // Build query for semester summaries with filters
+    let summaryQuery = supabase
+      .from('student_semester_summary')
+      .select(`
+        semester_id,
+        total_units_attempted,
+        total_units_passed,
+        semester_gpa,
+        cumulative_gpa,
+        academic_semesters!student_semester_summary_semester_id_fkey (
+          semester_name,
+          academic_sessions!academic_semesters_session_id_fkey (
+            session_name
+          )
+        )
+      `)
+      .eq('student_id', studentId)
+      .order('updated_at', { ascending: false });
+
+    // Apply filters to summary query
+    if (input.session_id) {
+      summaryQuery = summaryQuery.eq('academic_semesters.session_id', input.session_id);
+    }
     if (input.semester_id) {
-      query = query.eq('student_course_enrollments.student_semester_enrollments.semester_id', input.semester_id);
+      summaryQuery = summaryQuery.eq('semester_id', input.semester_id);
     }
 
-    if (input.course_id) {
-      query = query.eq('student_course_enrollments.course_id', input.course_id);
+    const { data: summaryData, error: summaryError } = await summaryQuery;
+
+    if (summaryError) {
+      throw new Error(`Failed to fetch semester summaries: ${summaryError.message}`);
     }
 
-    // Apply pagination
-    const offset = input.offset || 0;
-    const limit = input.limit || 50;
-    query = query.range(offset, offset + limit - 1);
+    // Get detailed results for each semester
+    const semesterResults = [];
+    
+    for (const summary of summaryData || []) {
+      // Get semester enrollment info to get level
+      const { data: enrollmentData } = await supabase
+        .from('student_semester_enrollments')
+        .select('level')
+        .eq('student_id', studentId)
+        .eq('semester_id', summary.semester_id)
+        .single();
 
-    const { data: results, error: resultsError, count } = await query;
+      const level = enrollmentData?.level || 0;
+      
+      // Apply level filter if specified
+      if (input.level && level !== input.level) {
+        continue;
+      }
 
-    if (resultsError) {
-      throw new Error(`Failed to fetch results: ${resultsError.message}`);
+      // Get course results for this semester
+      const { data: courseResults, error: courseError } = await supabase
+        .from('results_new')
+        .select(`
+          id,
+          score,
+          grade,
+          status,
+          created_at,
+          student_course_enrollments!inner (
+            courses!inner (
+              course_code,
+              course_title,
+              course_unit
+            ),
+            student_semester_enrollments!inner (
+              semester_id
+            )
+          )
+        `)
+        .eq('student_course_enrollments.student_semester_enrollments.student_id', studentId)
+        .eq('student_course_enrollments.student_semester_enrollments.semester_id', summary.semester_id)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+
+      if (courseError) {
+        console.error(`Error fetching course results for semester ${summary.semester_id}:`, courseError);
+        continue;
+      }
+
+      const courses = (courseResults || []).map(result => {
+        const enrollment = (result as any).student_course_enrollments;
+        const course = enrollment?.courses;
+        
+        return {
+          result_id: result.id,
+          course_code: course?.course_code || '',
+          course_title: course?.course_title || '',
+          course_unit: course?.course_unit || 0,
+          score: result.score,
+          grade: result.grade,
+          status: result.status,
+          created_at: result.created_at
+        };
+      });
+
+      const semester = (summary as any).academic_semesters;
+      const session = semester?.academic_sessions;
+      
+      semesterResults.push({
+        semester_id: summary.semester_id,
+        session_name: session?.session_name || 'Unknown',
+        semester_name: semester?.semester_name || 'Unknown',
+        level: level,
+        semester_gpa: summary.semester_gpa,
+        total_units_attempted: summary.total_units_attempted || 0,
+        total_units_passed: summary.total_units_passed || 0,
+        courses
+      });
     }
 
-    const items = (results || []).map(result => {
-      const enrollment = Array.isArray(result.student_course_enrollments) 
-        ? result.student_course_enrollments[0] 
-        : result.student_course_enrollments;
-      
-      const semesterEnrollment = Array.isArray(enrollment?.student_semester_enrollments)
-        ? enrollment?.student_semester_enrollments[0]
-        : enrollment?.student_semester_enrollments;
-      
-      const semester = Array.isArray(semesterEnrollment?.academic_semesters)
-        ? semesterEnrollment?.academic_semesters[0]
-        : semesterEnrollment?.academic_semesters;
-      
-      const session = Array.isArray(semester?.academic_sessions)
-        ? semester?.academic_sessions[0]
-        : semester?.academic_sessions;
-      
-      const course = Array.isArray(enrollment?.courses)
-        ? enrollment?.courses[0]
-        : enrollment?.courses;
+    // Calculate overall academic summary
+    const totalUnitsAttempted = summaryData?.reduce((sum, s) => sum + (s.total_units_attempted || 0), 0) || 0;
+    const totalUnitsPassed = summaryData?.reduce((sum, s) => sum + (s.total_units_passed || 0), 0) || 0;
+    const latestSummary = summaryData?.[0];
 
-      return {
-        id: result.id,
-        course_code: (course as any)?.course_code || '',
-        course_name: (course as any)?.course_name || '',
-        credit_units: (course as any)?.credit_units || 0,
-        score: result.score,
-        grade: result.grade || '',
-        status: result.status as 'pending' | 'approved' | 'rejected',
-        session_name: (session as any)?.session_name || '',
-        semester_name: (semester as any)?.semester_name || '',
-        semester_number: (semester as any)?.semester_number || 0,
-        created_at: result.created_at
-      };
-    });
+    const department = (studentData as any).departments;
+    const university = department?.universities;
 
-    const meta = createPaginationMeta(count || 0, limit, offset);
-
-    return { items, meta };
+    return {
+      student_info: {
+        matric_number: studentData.matric_number,
+        full_name: [studentData.first_name, studentData.middle_name, studentData.last_name]
+          .filter(Boolean).join(' '),
+        department_name: department?.department_name || 'Unknown',
+        university_name: university?.university_name || 'Unknown'
+      },
+      academic_summary: {
+        total_semesters: summaryData?.length || 0,
+        cumulative_gpa: latestSummary?.cumulative_gpa || null,
+        total_units_attempted: totalUnitsAttempted,
+        total_units_passed: totalUnitsPassed
+      },
+      semester_results: semesterResults
+    };
   }
 });

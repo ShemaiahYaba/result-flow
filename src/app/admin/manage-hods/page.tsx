@@ -132,7 +132,6 @@ export default function ManageHodsPage() {
                                 <TableHead>Name</TableHead>
                                 <TableHead>Staff ID</TableHead>
                                 <TableHead>Department</TableHead>
-                                <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -155,9 +154,6 @@ export default function ManageHodsPage() {
                                         <TableCell className="font-medium">{hod.name}</TableCell>
                                         <TableCell>{hod.staff_id}</TableCell>
                                         <TableCell>{hod.department_name}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={hod.status === 'Active' ? 'default' : 'secondary'}>{hod.status}</Badge>
-                                        </TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="icon">
                                                 <Edit className="h-4 w-4" />

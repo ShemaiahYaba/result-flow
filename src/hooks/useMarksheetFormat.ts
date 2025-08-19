@@ -4,15 +4,24 @@ import { authService } from '@/services/authService';
 export interface MarksheetColumn {
   id: string;
   column_name: string;
-  type: 'identifier' | 'text' | 'score';
-  required: boolean;
+  display_name: string;
+  column_type: 'identifier' | 'text' | 'score';
+  is_required: boolean;
+  column_order: number;
+  validation_rules: any;
+  is_active: boolean;
+  university_id: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface MarksheetColumnInput {
   column_name: string;
-  type: 'identifier' | 'text' | 'score';
-  required: boolean;
+  display_name: string;
+  column_type: 'identifier' | 'text' | 'score';
+  is_required: boolean;
+  column_order?: number;
+  validation_rules?: any;
 }
 
 export function useMarksheetFormat() {

@@ -6,6 +6,8 @@ export interface AuthUser {
   id: string;
   email: string;
   role: 'admin' | 'hod' | 'student' | '';
+  firstName?: string;
+  lastName?: string;
   profile?: any;
 }
 

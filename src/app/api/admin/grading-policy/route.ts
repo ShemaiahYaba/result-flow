@@ -1,207 +1,300 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { makeRoute } from '@/lib/api/routeFactory';
-import { createClient, createServiceClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
 
-// Schema for grading policy
+// ============================================================
+// VALIDATION SCHEMAS
+// ============================================================
+
 const GradingPolicySchema = z.object({
   id: z.string().uuid(),
+  policy_name: z.string(),
+  min_score: z.number().min(0).max(100),
+  max_score: z.number().min(0).max(100),
   grade: z.string(),
-  min_score: z.number().int(),
-  max_score: z.number().int(),
-  created_at: z.string()
-});
-
-const GradingPolicyInputSchema = z.object({
-  grade: z.string().min(1, 'Grade is required'),
-  min_score: z.number().int().min(0, 'Min score must be non-negative'),
-  max_score: z.number().int().min(0, 'Max score must be non-negative')
-}).refine(data => data.max_score > data.min_score, {
-  message: 'Max score must be greater than min score',
-  path: ['max_score']
-});
-
-const GradingPolicyUpdateSchema = z.object({
-  grade: z.string().min(1, 'Grade is required').optional(),
-  min_score: z.number().int().min(0, 'Min score must be non-negative').optional(),
-  max_score: z.number().int().min(0, 'Max score must be non-negative').optional()
+  grade_point: z.number().min(0).max(5),
+  description: z.string().nullable(),
+  is_active: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string()
 });
 
 const GradingPoliciesResponseSchema = z.array(GradingPolicySchema);
 
-// GET - Fetch all grading policies
+const CreateGradingPolicySchema = z.object({
+  policy_name: z.string().min(1, "Policy name is required"),
+  min_score: z.number().min(0).max(100),
+  max_score: z.number().min(0).max(100),
+  grade: z.string().min(1, "Grade is required"),
+  grade_point: z.number().min(0).max(5),
+  description: z.string().optional()
+}).refine(data => data.max_score >= data.min_score, {
+  message: "Max score must be greater than or equal to min score",
+  path: ["max_score"]
+});
+
+const UpdateGradingPolicySchema = z.object({
+  policy_name: z.string().min(1).optional(),
+  min_score: z.number().min(0).max(100).optional(),
+  max_score: z.number().min(0).max(100).optional(),
+  grade: z.string().min(1).optional(),
+  grade_point: z.number().min(0).max(5).optional(),
+  description: z.string().optional(),
+  is_active: z.boolean().optional()
+});
+
+// ============================================================
+// GET - FETCH GRADING POLICIES
+// ============================================================
+
 export const GET = makeRoute({
   method: 'GET',
   requiredRole: 'admin',
   output: GradingPoliciesResponseSchema,
-  handle: async ({ supabase }) => {
-    // Use service client for admin operations to bypass RLS
-    const serviceClient = createServiceClient();
-    const { data, error } = await serviceClient
+  handle: async ({ supabase, user }) => {
+    // Get admin's university to filter grading policies
+    const { data: userData } = await supabase
+      .from('users')
+      .select('user_entity_id')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (!userData) {
+      throw new Error('User not found');
+    }
+
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('university_id')
+      .eq('id', userData.user_entity_id)
+      .single();
+
+    if (!adminData) {
+      throw new Error('Admin not found');
+    }
+
+    // Fetch grading policies for admin's university
+    const { data: policies, error } = await supabase
       .from('grading_policies')
       .select('*')
-      .order('min_score', { ascending: true });
+      .eq('university_id', adminData.university_id)
+      .eq('is_active', true)
+      .order('min_score', { ascending: false });
 
     if (error) {
       throw new Error(`Failed to fetch grading policies: ${error.message}`);
     }
 
-    return data || [];
+    return policies || [];
   }
 });
 
-// POST - Create new grading policy
+// ============================================================
+// POST - CREATE GRADING POLICY
+// ============================================================
+
 export const POST = makeRoute({
   method: 'POST',
-  requiredRole: 'admin',
-  input: GradingPolicyInputSchema,
+  input: CreateGradingPolicySchema,
   output: GradingPolicySchema,
-  handle: async ({ supabase, input }) => {
-    // Use service client for admin operations to bypass RLS
-    const serviceClient = createServiceClient();
-    
-    // Check for overlapping ranges
-    const { data: overlappingPolicies, error: overlapError } = await serviceClient
-      .from('grading_policies')
-      .select('*')
-      .or(`and(min_score.lte.${input.max_score},max_score.gte.${input.min_score})`);
+  requiredRole: 'admin',
+  handle: async ({ supabase, user, input }) => {
+    // Get admin's university
+    const { data: userData } = await supabase
+      .from('users')
+      .select('user_entity_id')
+      .eq('auth_user_id', user.id)
+      .single();
 
-    if (overlapError && overlapError.code !== 'PGRST116') { // PGRST116 = no rows returned
-      throw new Error(`Failed to check for overlapping ranges: ${overlapError.message}`);
+    if (!userData) {
+      throw new Error('User not found');
     }
 
-    if (overlappingPolicies && overlappingPolicies.length > 0) {
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('university_id')
+      .eq('id', userData.user_entity_id)
+      .single();
+
+    if (!adminData) {
+      throw new Error('Admin not found');
+    }
+
+    // Check for overlapping score ranges
+    const { data: existingPolicies } = await supabase
+      .from('grading_policies')
+      .select('id, min_score, max_score')
+      .eq('university_id', adminData.university_id)
+      .eq('is_active', true);
+
+    const hasOverlap = existingPolicies?.some(policy => 
+      (input.min_score >= policy.min_score && input.min_score <= policy.max_score) ||
+      (input.max_score >= policy.min_score && input.max_score <= policy.max_score) ||
+      (input.min_score <= policy.min_score && input.max_score >= policy.max_score)
+    );
+
+    if (hasOverlap) {
       throw new Error('Score range overlaps with existing grading policy');
     }
 
-    // Check for duplicate grade
-    const { data: duplicateGrade, error: gradeError } = await serviceClient
+    // Create the grading policy
+    const { data: newPolicy, error: createError } = await supabase
       .from('grading_policies')
-      .select('id')
-      .eq('grade', input.grade)
-      .single();
-
-    if (gradeError && gradeError.code !== 'PGRST116') { // PGRST116 = no rows returned
-      throw new Error(`Failed to check for duplicate grade: ${gradeError.message}`);
-    }
-
-    if (duplicateGrade) {
-      throw new Error('Grade already exists');
-    }
-
-    const { data, error } = await serviceClient
-      .from('grading_policies')
-      .insert([{
-        grade: input.grade,
+      .insert({
+        university_id: adminData.university_id,
+        policy_name: input.policy_name,
         min_score: input.min_score,
-        max_score: input.max_score
-      }])
-      .select()
+        max_score: input.max_score,
+        grade: input.grade,
+        grade_point: input.grade_point,
+        description: input.description || null
+      })
+      .select('*')
       .single();
 
-    if (error) {
-      throw new Error(`Failed to create grading policy: ${error.message}`);
+    if (createError) {
+      throw new Error(`Failed to create grading policy: ${createError.message}`);
     }
 
-    return data;
+    if (!newPolicy) {
+      throw new Error('Failed to create grading policy');
+    }
+
+    return newPolicy;
   }
 });
 
-// PATCH - Update grading policy
+// ============================================================
+// PATCH - UPDATE GRADING POLICY
+// ============================================================
+
 export const PATCH = makeRoute({
   method: 'PATCH',
-  requiredRole: 'admin',
   input: z.object({
     id: z.string().uuid(),
-    ...GradingPolicyUpdateSchema.shape
+    ...UpdateGradingPolicySchema.shape
   }),
   output: GradingPolicySchema,
-  handle: async ({ supabase, input }) => {
+  requiredRole: 'admin',
+  handle: async ({ supabase, user, input }) => {
     const { id, ...updateData } = input;
 
-    // If updating scores, check for overlapping ranges (excluding current record)
+    // Get admin's university to ensure they can only update their policies
+    const { data: userData } = await supabase
+      .from('users')
+      .select('user_entity_id')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (!userData) {
+      throw new Error('User not found');
+    }
+
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('university_id')
+      .eq('id', userData.user_entity_id)
+      .single();
+
+    if (!adminData) {
+      throw new Error('Admin not found');
+    }
+
+    // Verify the policy belongs to admin's university
+    const { data: existingPolicy } = await supabase
+      .from('grading_policies')
+      .select('id, university_id, min_score, max_score')
+      .eq('id', id)
+      .eq('university_id', adminData.university_id)
+      .single();
+
+    if (!existingPolicy) {
+      throw new Error('Grading policy not found or access denied');
+    }
+
+    // If updating score ranges, check for overlaps
     if (updateData.min_score !== undefined || updateData.max_score !== undefined) {
-      const { data: current, error: currentError } = await supabase
+      const { data: otherPolicies } = await supabase
         .from('grading_policies')
-        .select('min_score, max_score')
-        .eq('id', id)
-        .single();
+        .select('id, min_score, max_score')
+        .eq('university_id', adminData.university_id)
+        .eq('is_active', true)
+        .neq('id', id);
 
-      if (currentError) {
-        throw new Error(`Failed to fetch current policy: ${currentError.message}`);
-      }
+      const newMinScore = updateData.min_score ?? existingPolicy.min_score;
+      const newMaxScore = updateData.max_score ?? existingPolicy.max_score;
 
-      const minScore = updateData.min_score ?? current.min_score;
-      const maxScore = updateData.max_score ?? current.max_score;
+      const hasOverlap = otherPolicies?.some(policy => 
+        (newMinScore >= policy.min_score && newMinScore <= policy.max_score) ||
+        (newMaxScore >= policy.min_score && newMaxScore <= policy.max_score) ||
+        (newMinScore <= policy.min_score && newMaxScore >= policy.max_score)
+      );
 
-      if (maxScore <= minScore) {
-        throw new Error('Max score must be greater than min score');
-      }
-
-      const { data: existing, error: checkError } = await supabase
-        .from('grading_policies')
-        .select('*')
-        .neq('id', id)
-        .or(`and(min_score.lte.${maxScore},max_score.gte.${minScore})`);
-
-      if (checkError) {
-        throw new Error(`Failed to check for overlapping ranges: ${checkError.message}`);
-      }
-
-      if (existing && existing.length > 0) {
-        throw new Error('Score range overlaps with existing grading policy');
+      if (hasOverlap) {
+        throw new Error('Updated score range overlaps with existing grading policy');
       }
     }
 
-    // If updating grade, check for duplicates
-    if (updateData.grade) {
-      const { data: duplicateGrade, error: gradeError } = await supabase
-        .from('grading_policies')
-        .select('id')
-        .eq('grade', updateData.grade)
-        .neq('id', id)
-        .single();
-
-      if (gradeError && gradeError.code !== 'PGRST116') {
-        throw new Error(`Failed to check for duplicate grade: ${gradeError.message}`);
-      }
-
-      if (duplicateGrade) {
-        throw new Error('Grade already exists');
-      }
-    }
-
-    const { data, error } = await supabase
+    // Update the policy
+    const { data: updatedPolicy, error: updateError } = await supabase
       .from('grading_policies')
       .update(updateData)
       .eq('id', id)
-      .select()
+      .eq('university_id', adminData.university_id)
+      .select('*')
       .single();
 
-    if (error) {
-      throw new Error(`Failed to update grading policy: ${error.message}`);
+    if (updateError) {
+      throw new Error(`Failed to update grading policy: ${updateError.message}`);
     }
 
-    return data;
+    if (!updatedPolicy) {
+      throw new Error('Grading policy not found');
+    }
+
+    return updatedPolicy;
   }
 });
 
-// DELETE - Delete grading policy
+// ============================================================
+// DELETE - DELETE GRADING POLICY
+// ============================================================
+
 export const DELETE = makeRoute({
   method: 'DELETE',
-  requiredRole: 'admin',
   input: z.object({
     id: z.string().uuid()
   }),
   output: z.object({ success: z.boolean() }),
-  handle: async ({ supabase, input }) => {
-    // Use service client for admin operations to bypass RLS
-    const serviceClient = createServiceClient();
-    const { error } = await serviceClient
+  requiredRole: 'admin',
+  handle: async ({ supabase, user, input }) => {
+    // Get admin's university to ensure they can only delete their policies
+    const { data: userData } = await supabase
+      .from('users')
+      .select('user_entity_id')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (!userData) {
+      throw new Error('User not found');
+    }
+
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('university_id')
+      .eq('id', userData.user_entity_id)
+      .single();
+
+    if (!adminData) {
+      throw new Error('Admin not found');
+    }
+
+    // Verify the policy belongs to admin's university and delete it
+    const { error } = await supabase
       .from('grading_policies')
       .delete()
-      .eq('id', input.id);
+      .eq('id', input.id)
+      .eq('university_id', adminData.university_id);
 
     if (error) {
       throw new Error(`Failed to delete grading policy: ${error.message}`);

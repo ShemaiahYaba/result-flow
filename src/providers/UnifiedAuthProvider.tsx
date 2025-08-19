@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { authService, type AuthState, type AuthUser } from '@/services/authService';
 import type { Session } from '@supabase/supabase-js';
-import { useGlobalContext } from '@/contexts/GlobalContext';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -30,7 +29,6 @@ interface UnifiedAuthProviderProps {
 }
 
 export function UnifiedAuthProvider({ children }: UnifiedAuthProviderProps) {
-  const { addNotification } = useGlobalContext();
   const [authState, setAuthState] = useState<AuthState>(authService.getState());
 
   useEffect(() => {
@@ -40,22 +38,13 @@ export function UnifiedAuthProvider({ children }: UnifiedAuthProviderProps) {
         setAuthState(state);
       },
       onError: (error) => {
-        addNotification({
-          type: 'error',
-          title: 'Authentication Error',
-          message: error.message || 'An authentication error occurred',
-          duration: 5000,
-        });
+        console.error('Authentication Error:', error.message || 'An authentication error occurred');
       },
       onNotification: (notification) => {
-        addNotification({
-          id: `auth-${Date.now()}`,
-          ...notification,
-          timestamp: new Date(),
-        });
+        console.log('Auth Notification:', notification);
       },
     });
-  }, [addNotification]);
+  }, []);
 
   const contextValue: AuthContextType = {
     ...authState,

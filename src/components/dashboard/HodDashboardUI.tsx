@@ -7,14 +7,26 @@ import { HodStats } from "@/hooks/useHodDashboard";
 interface HodDashboardUIProps {
   stats: HodStats;
   loading: boolean;
+  error?: string | null;
   onLogout: () => void;
 }
 
-export function HodDashboardUI({ stats, loading, onLogout }: HodDashboardUIProps) {
+export function HodDashboardUI({ stats, loading, error, onLogout }: HodDashboardUIProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error: {error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
       </div>
     );
   }
@@ -24,7 +36,15 @@ export function HodDashboardUI({ stats, loading, onLogout }: HodDashboardUIProps
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-headline">HOD Dashboard</h1>
-          <p className="text-muted-foreground">Welcome, Head of Department. Manage your department's results here.</p>
+          <p className="text-muted-foreground">
+            Welcome, {stats.hodName || 'Head of Department'}. 
+            {stats.department && stats.departmentCode && (
+              <span> Managing {stats.department} ({stats.departmentCode})</span>
+            )}
+            {stats.university && (
+              <span> at {stats.university}</span>
+            )}
+          </p>
         </div>
         <Button variant="outline" onClick={onLogout} className="flex items-center gap-2">
           <LogOut className="w-4 h-4" /> Logout
