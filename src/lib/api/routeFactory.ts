@@ -282,10 +282,20 @@ export function makeRoute<I = unknown, O = unknown>(config: HandlerConfig<I, O>)
           }
         });
       } else {
-        try {
-          inputRaw = await req.json();
-        } catch {
+        // Check if this is a multipart/form-data request
+        const contentType = req.headers.get('content-type') || '';
+        console.log('Route factory - Content-Type:', contentType);
+        if (contentType.includes('multipart/form-data')) {
+          // Don't parse form data here - let the handler do it
+          // This prevents consuming the body stream
+          console.log('Route factory - Skipping JSON parse for form data');
           inputRaw = {};
+        } else {
+          try {
+            inputRaw = await req.json();
+          } catch {
+            inputRaw = {};
+          }
         }
       }
 

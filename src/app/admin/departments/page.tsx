@@ -129,7 +129,6 @@ export default function DepartmentsPage() {
                             <TableRow>
                                 <TableHead>Department Name</TableHead>
                                 <TableHead>Department Code</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -150,14 +149,6 @@ export default function DepartmentsPage() {
                                     <TableRow key={dept.id}>
                                         <TableCell className="font-medium">{dept.department_name}</TableCell>
                                         <TableCell>{dept.department_code}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon">
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
                                     </TableRow>
                                 ))
                             )}

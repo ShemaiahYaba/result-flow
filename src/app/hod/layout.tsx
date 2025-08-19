@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from "react";
-import { LayoutDashboard, Upload, FileText, User } from "lucide-react";
+import { LayoutDashboard, Upload, FileText, User, History } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { Header } from "@/components/layout/header";
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/hod", label: "Dashboard", icon: LayoutDashboard },
   { href: "/hod/uploads", label: "Uploads", icon: Upload },
   { href: "/hod/broadsheet", label: "Broadsheet", icon: FileText },
+  { href: "/hod/upload-history", label: "Upload History", icon: History },
   { href: "/hod/profile", label: "My Profile", icon: User },
 ];
 

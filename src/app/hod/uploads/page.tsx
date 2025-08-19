@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/providers/UnifiedAuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { useHodSemesters } from "@/hooks/useHodSemesters";
+import UploadResultsDisplay from "@/components/dashboard/UploadResultsDisplay";
 
 interface Course {
   course_id: string;
@@ -21,7 +23,10 @@ interface Course {
 
 interface Semester {
   semester_id: string;
+  session_name: string;
+  semester_name: string;
   display_name: string;
+  hod_id: string;
 }
 
 function UploadBox({ id, title, description, acceptedFiles, onFileSelect }: { 
@@ -69,7 +74,7 @@ function UploadBox({ id, title, description, acceptedFiles, onFileSelect }: {
 
     if (file) {
         return (
-            <div className="flex flex-col items-center justify-center w-full h-full border-2 border-dashed rounded-lg bg-card p-4">
+            <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg bg-card p-4">
                  <div className="flex items-center gap-4 p-4 rounded-lg bg-muted w-full">
                      <FileIcon className="h-8 w-8 text-primary" />
                      <div className="flex-1">
@@ -116,17 +121,15 @@ export default function HodUploadsPage() {
     const [marksheetFile, setMarksheetFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [uploadResults, setUploadResults] = useState<any>(null);
+    const [currentUploadDetails, setCurrentUploadDetails] = useState<any>(null);
 
-    // Mock semesters - in a real app, fetch from API
-    const semesters: Semester[] = [
-        { semester_id: '1', display_name: '2023/2024 First Semester' },
-        { semester_id: '2', display_name: '2023/2024 Second Semester' },
-        { semester_id: '3', display_name: '2024/2025 First Semester' }
-    ];
+    // Use real semesters API
+    const { data: semesters, loading: loadingSemesters, error: semestersError, fetchSemesters } = useHodSemesters();
 
     useEffect(() => {
         fetchCourses();
-    }, []);
+        fetchSemesters();
+    }, [fetchSemesters]);
 
     const fetchCourses = async () => {
         try {
@@ -202,12 +205,31 @@ export default function HodUploadsPage() {
             }
 
             setUploadResults(result.data || result);
+            
+            // Fetch detailed upload information including errors
+            if (result.data?.upload_id || result.upload_id) {
+                fetchUploadDetails(result.data?.upload_id || result.upload_id);
+            }
+            
             alert(`Upload successful! Processed ${result.data?.processed_records || 0} results and submitted for approval.`);
         } catch (error) {
             console.error('Upload error:', error);
             alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setUploading(false);
+        }
+    };
+
+    const fetchUploadDetails = async (uploadId: string) => {
+        try {
+            const response = await authenticatedFetch(`/api/hod/upload-details?upload_id=${uploadId}`);
+            const result = await response.json();
+            
+            if (response.ok && result.data?.uploads?.length > 0) {
+                setCurrentUploadDetails(result.data.uploads[0]);
+            }
+        } catch (error) {
+            console.error('Failed to fetch upload details:', error);
         }
     };
 
@@ -221,9 +243,14 @@ export default function HodUploadsPage() {
             {/* Semester Selection */}
             <div className="bg-white rounded-lg shadow-md p-6 mb-8">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Select Semester</h2>
+                {semestersError && (
+                    <div className="text-red-600 text-sm mb-4">
+                        Error loading semesters: {semestersError}
+                    </div>
+                )}
                 <Select value={selectedSemester} onValueChange={setSelectedSemester}>
                     <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Choose a semester" />
+                        <SelectValue placeholder={loadingSemesters ? "Loading semesters..." : "Choose a semester"} />
                     </SelectTrigger>
                     <SelectContent>
                         {semesters.map((semester) => (
@@ -306,7 +333,7 @@ export default function HodUploadsPage() {
 
             {/* Upload Results */}
             {uploadResults && (
-                <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+                <><div className="mt-8 bg-white rounded-lg shadow-md p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload Results</h3>
                     <div className="space-y-2">
                         <p><strong>Status:</strong> {uploadResults.status}</p>
@@ -319,6 +346,10 @@ export default function HodUploadsPage() {
                         )}
                     </div>
                 </div>
+                {currentUploadDetails && (
+                    <UploadResultsDisplay uploads={[currentUploadDetails]} showCourseInfo={true} />
+                )}
+                </>
             )}
         </div>
     );

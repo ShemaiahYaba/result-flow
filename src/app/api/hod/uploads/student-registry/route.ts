@@ -5,6 +5,7 @@ import { makeRoute } from '@/lib/api/routeFactory';
 /**
  * POST /api/hod/uploads/student-registry
  * Upload and process student registry file
+ * Fixed: Body consumption issue with form data
  */
 const StudentRegistryUploadSchema = z.object({
   file: z.instanceof(File),
@@ -79,9 +80,12 @@ export const POST = makeRoute({
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
     const requiredHeaders = ['matric_number', 'first_name', 'last_name', 'email', 'level'];
     
+    console.log('CSV headers found:', headers);
+    console.log('Required headers:', requiredHeaders);
+    
     for (const required of requiredHeaders) {
       if (!headers.includes(required)) {
-        throw new Error(`Missing required column: ${required}`);
+        throw new Error(`Missing required column: ${required}. Found headers: ${headers.join(', ')}`);
       }
     }
 

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useAuth } from '@/providers/UnifiedAuthProvider';
 
 interface Semester {
   semester_id: string;
@@ -9,6 +10,7 @@ interface Semester {
 }
 
 export const useHodSemesters = () => {
+  const { authenticatedFetch } = useAuth();
   const [data, setData] = useState<Semester[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,12 +20,7 @@ export const useHodSemesters = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/hod/semesters', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await authenticatedFetch('/api/hod/semesters');
 
       if (!response.ok) {
         throw new Error(`Failed to fetch semesters: ${response.statusText}`);
@@ -36,7 +33,7 @@ export const useHodSemesters = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authenticatedFetch]);
 
   return {
     data,

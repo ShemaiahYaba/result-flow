@@ -12,6 +12,8 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
+import { useUniversityInfo } from '@/hooks/useUniversityInfo';
+import { useEffect } from 'react';
 
 type NavItem = {
   href: string;
@@ -21,6 +23,17 @@ type NavItem = {
 
 export function DashboardSidebar({ navItems }: { navItems: NavItem[] }) {
   const pathname = usePathname();
+  const { data: universityInfo, loading, error, fetchUniversityInfo } = useUniversityInfo();
+
+  useEffect(() => {
+    fetchUniversityInfo();
+  }, [fetchUniversityInfo]);
+
+  const getUniversityName = () => {
+    if (loading) return 'Loading...';
+    if (error) return 'University';
+    return universityInfo?.university_name || 'University';
+  };
 
   return (
     <>
@@ -31,7 +44,7 @@ export function DashboardSidebar({ navItems }: { navItems: NavItem[] }) {
                 </div>
                 <div className="flex flex-col">
                     <span className="font-headline text-lg font-bold">ResultFlow</span>
-                    <span className="text-xs text-muted-foreground">University of Lagos</span>
+                    <span className="text-xs text-muted-foreground">{getUniversityName()}</span>
                 </div>
           </SidebarMenuButton>
       </SidebarHeader>

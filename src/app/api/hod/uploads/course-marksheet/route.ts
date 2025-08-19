@@ -84,9 +84,12 @@ export const POST = makeRoute({
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
     const requiredHeaders = ['matric_number', 'score', 'grade'];
     
+    console.log('Course marksheet CSV headers found:', headers);
+    console.log('Course marksheet required headers:', requiredHeaders);
+    
     for (const required of requiredHeaders) {
       if (!headers.includes(required)) {
-        throw new Error(`Missing required column: ${required}`);
+        throw new Error(`Missing required column: ${required}. Found headers: ${headers.join(', ')}`);
       }
     }
 
